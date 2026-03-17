@@ -97,7 +97,7 @@ services:
     networks:
       - microservices
   namesrv:
-    image: apache/rocketmq:5.3.3
+    image: apache/rocketmq:5.4.0
     container_name: rmqnamesrv
     ports:
       - 9876:9876
@@ -105,7 +105,7 @@ services:
       - microservices
     command: sh mqnamesrv
   broker:
-    image: apache/rocketmq:5.3.3
+    image: apache/rocketmq:5.4.0
     container_name: rmqbroker
     ports:
       - 10909:10909
@@ -120,8 +120,17 @@ services:
     volumes:
       - ./config/rocketmq/broker.conf:/home/rocketmq/rocketmq-5.3.3/conf/broker.conf
     command: sh mqbroker -n namesrv:9876 -c ../conf/broker.conf
+  rocketmq-init-topics:
+    image: apache/rocketmq:5.4.0
+    container_name: rocketmq-init-topics
+    depends_on:
+      - broker
+    networks:
+      - microservices
+    volumes: []
+    command: sh -c "sleep 30 && /home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t attempts-topic -a +message.type=FIFO && echo 'attempts-topic created successfully' && /home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t logs -a +message.type=FIFO && echo 'logs topic created successfully' || echo 'Failed to create topics'"
   proxy:
-    image: apache/rocketmq:5.3.3
+    image: apache/rocketmq:5.4.0
     container_name: rmqproxy
     networks:
       - microservices
@@ -136,7 +145,7 @@ services:
       - NAMESRV_ADDR=rmqnamesrv:9876
     command: sh mqproxy
   nacos:
-    image: nacos/nacos-server:v3.0.1
+    image: nacos/nacos-server:v3.1.1
     env_file:
       - ./env/nacos-standlone-mysql.env
     volumes:
@@ -223,7 +232,7 @@ services:
       - microservices
   #currently for traces and logs
   elasticsearch:
-    image: elasticsearch:8.15.2
+    image: elasticsearch:9.3.1
     container_name: elasticsearch
     environment:
       discovery.type: single-node
@@ -252,7 +261,7 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
-    image: docker.elastic.co/kibana/kibana:8.15.2
+    image: docker.elastic.co/kibana/kibana:9.3.1
       #volumes:
     #- kibanadata:/usr/share/kibana/data
     ports:
@@ -276,7 +285,7 @@ services:
       - microservices
   # Grafana
   grafana:
-    image: grafana/grafana:10.4.3
+    image: grafana/grafana:12.4.1
     container_name: grafana
     deploy:
       resources:
@@ -284,7 +293,7 @@ services:
           memory: 300M
     restart: unless-stopped
     environment:
-      - "GF_INSTALL_PLUGINS=grafana-opensearch-datasource"
+      - "GF_PLUGINS_PREINSTALL=grafana-opensearch-datasource"
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -299,16 +308,28 @@ services:
       - microservices
   #loki
   loki:
-    image: grafana/loki:3.1.0
+    image: grafana/loki:3.6.7
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - microservices
-      
+
+  # Tempo
+  tempo:
+    image: grafana/tempo:2.10.2
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo-config.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"   # http
+    networks:
+      - microservices
+
   # Prometheus
   prometheus:
-    image: quay.io/prometheus/prometheus:v2.52.0
+    image: quay.io/prometheus/prometheus:v3.10.0
     container_name: prometheus
     command:
       - --web.console.templates=/etc/prometheus/consoles

@@ -40,7 +40,12 @@ exporters:
     endpoint: jaeger-all-in-one:4317
     tls:
       insecure: true
-  #logs  
+
+  #traces to Tempo
+  otlphttp/tempo:
+    endpoint: http://tempo:4318
+
+  #logs
   otlphttp/loki:
     auth:
       authenticator: basicauth/loki
@@ -79,7 +84,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug,zipkin,otlp,elasticsearch]
+      exporters: [debug,zipkin,otlp,otlphttp/tempo,elasticsearch]
     logs:
       receivers: [otlp]
       exporters: [debug, otlphttp/loki,elasticsearch]

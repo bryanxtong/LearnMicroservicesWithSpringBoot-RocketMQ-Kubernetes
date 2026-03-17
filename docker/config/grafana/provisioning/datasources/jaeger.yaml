@@ -11,3 +11,7 @@ datasources:
     url: http://jaeger-all-in-one:16686
     editable: true
     isDefault: false
+    jsonData:
+      httpHeaderName1: "Accept-Encoding"
+    secureJsonData:
+      httpHeaderValue1: "identity"
