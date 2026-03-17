@@ -321,7 +321,7 @@ services:
     container_name: tempo
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
-      - ./tempo-config.yaml:/etc/tempo.yaml
+      - ./config/tempo/tempo-config.yaml:/etc/tempo.yaml
     ports:
       - "3200:3200"   # http
     networks:
