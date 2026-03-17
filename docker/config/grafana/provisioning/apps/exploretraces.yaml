@@ -1,0 +1,6 @@
+# apiVersion: 1
+#
+# apps:
+#   - name: grafana-exploretraces-app
+#     type: grafana-exploretraces-app
+#     disabled: false

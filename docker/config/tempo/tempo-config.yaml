@@ -1,0 +1,47 @@
+memberlist:
+  join_members:
+    - tempo
+
+server:
+  http_listen_port: 3200
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+  ring:
+    kvstore:
+      store: memberlist
+
+ingester:
+  max_block_duration: 5m
+  lifecycler:
+    ring:
+      kvstore:
+        store: memberlist
+    heartbeat_period: 1s
+    num_tokens: 512
+    min_ready_duration: 0s
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal
+
+metrics_generator:
+  ring:
+    kvstore:
+      store: memberlist
+  storage:
+    path: /var/tempo/generator
+
+usage_report:
+  reporting_enabled: false
