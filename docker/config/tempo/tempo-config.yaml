@@ -1,3 +1,6 @@
+stream_over_http_enabled: true
+multitenancy_enabled: false
+
 memberlist:
   join_members:
     - tempo
@@ -42,6 +45,30 @@ metrics_generator:
       store: memberlist
   storage:
     path: /var/tempo/generator
+  processor:
+    service_graphs:
+      histogram_buckets: [0.1, 0.5, 1, 2, 5, 10]
+    span_metrics:
+      histogram_buckets: [0.1, 0.5, 1, 2, 5, 10]
+  registry:
+    external_labels:
+      source: tempo
+
+query_frontend:
+  search:
+    target_bytes_per_job: 104857600
+    max_result_limit: 10000
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+  metrics:
+    concurrent_jobs: 8
+    target_bytes_per_job: 104857600
+  trace_by_id:
+    query_shards: 2
+    duration_slo: 5s
+
+querier:
+  max_concurrent_queries: 20
 
 usage_report:
   reporting_enabled: false

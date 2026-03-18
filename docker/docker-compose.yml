@@ -128,7 +128,7 @@ services:
     networks:
       - microservices
     volumes: []
-    command: sh -c "sleep 30 && /home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t attempts-topic -a +message.type=FIFO && echo 'attempts-topic created successfully' && /home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t logs -a +message.type=FIFO && echo 'logs topic created successfully' || echo 'Failed to create topics'"
+    command: sh -c "sleep 30 && (/home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t attempts-topic -a +message.type=FIFO > /tmp/topic1.log 2>&1 && grep -q 'TopicConfig' /tmp/topic1.log && echo 'attempts-topic created successfully' || (echo 'Failed to create attempts-topic'; cat /tmp/topic1.log; exit 1)) && (/home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t logs -a +message.type=FIFO > /tmp/topic2.log 2>&1 && grep -q 'TopicConfig' /tmp/topic2.log && echo 'logs topic created successfully' || (echo 'Failed to create logs topic'; cat /tmp/topic2.log; exit 1))"
   proxy:
     image: apache/rocketmq:5.4.0
     container_name: rmqproxy
@@ -203,7 +203,7 @@ services:
     networks:
       - microservices
   collector:
-    image: otel/opentelemetry-collector-contrib:0.109.0
+    image: otel/opentelemetry-collector-contrib:0.147.0
     volumes:
       - ./collector-config.yaml:/collector-config.yaml
     command: ["--config=/collector-config.yaml"]

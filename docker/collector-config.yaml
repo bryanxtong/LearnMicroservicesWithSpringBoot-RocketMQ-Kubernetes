@@ -36,17 +36,17 @@ exporters:
       enabled: true
 
   #traces
-  otlp:
+  otlp_grpc:
     endpoint: jaeger-all-in-one:4317
     tls:
       insecure: true
 
   #traces to Tempo
-  otlphttp/tempo:
+  otlp_http/tempo:
     endpoint: http://tempo:4318
 
   #logs
-  otlphttp/loki:
+  otlp_http/loki:
     auth:
       authenticator: basicauth/loki
     endpoint: http://loki:3100/otlp
@@ -84,7 +84,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug,zipkin,otlp,otlphttp/tempo,elasticsearch]
+      exporters: [debug,zipkin,otlp_grpc,otlp_http/tempo,elasticsearch]
     logs:
       receivers: [otlp]
-      exporters: [debug, otlphttp/loki,elasticsearch]
+      exporters: [debug, otlp_http/loki,elasticsearch]
