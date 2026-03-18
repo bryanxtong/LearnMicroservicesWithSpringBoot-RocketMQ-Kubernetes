@@ -1,4 +1,4 @@
-# Learn Microservices with Spring Boot 3 -（Spring Cloud Alibaba with RocketMQ）
+# Learn Microservices with Spring Boot -（Spring Cloud Alibaba with RocketMQ）
 This repository contains the source code of the practical use case described in the book [Learn Microservices with Spring Boot 3 (3rd Edition)](https://link.springer.com/book/10.1007/978-1-4842-9757-5).
 The book follows a pragmatic approach to building a Microservice Architecture. You start with a small monolith and examine the pros and cons that come with a move to microservices.
 
@@ -55,7 +55,7 @@ challenges-frontend$ npm run build
 challenges-frontend$ docker build -t challenges-frontend:1.0 .
 ```
 
-change brokerIP1 to your docker hosts IP in docker\config\rocketmq\broker.cnf
+change brokerIP1 to your docker hosts IP in docker/config/rocketmq/broker.conf
 
 brokerIP1=<192.168.71.47>
 
@@ -79,14 +79,17 @@ docker exec -it <elasticsearch> bash
 /usr/share/elasticsearch/bin/elasticsearch-reset-password -i -u kibana_system
 ```
 
-and It now uses opentelemetry collector contrib to collect metrics to prometheus 
-and traces to zipkin/jaeger/elasticsearch and logs to loki/elasticsearch, 
-and grafana can be used to view loki logs, elasticsearch logs/traces, and prometheus metrics
+and It now uses opentelemetry collector contrib to collect:
+- metrics to prometheus
+- traces to tempo/zipkin/jaeger/elasticsearch
+- logs to loki/elasticsearch
+and grafana can be used to view loki logs, elasticsearch logs/traces, tempo traces, and prometheus metrics
 
 ```
 Front End: http://localhost:3000
 Grafana: http://localhost:3001/grafana
-Prometheus http://localhost:9090
+Prometheus: http://localhost:9090
+Tempo: http://localhost:3200
 Nacos: http://localhost:8082  (nacos/nacos)
 Sentinel Dashboard: http://localhost:8858 (sentinel/sentinel)
 Kibana: http://localhost:5601
