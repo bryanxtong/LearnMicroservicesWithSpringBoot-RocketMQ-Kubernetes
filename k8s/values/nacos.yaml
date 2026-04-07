@@ -1,0 +1,40 @@
+global:
+  mode: standalone
+
+nacos:
+  image:
+    repository: nacos/nacos-server
+    tag: v3.1.1
+    pullPolicy: Never
+
+  replicaCount: 1
+  preferHostMode: hostname
+  serverPort: 8848
+  consolePort: 8080
+  mcpPort: 9080
+
+  authToken: "VGhpc0lzTXlDdXN0b21TZWNyZXRLZXkwMTIzNDU2Nzg="
+  identityKey: "test"
+  identityValue: "test2024"
+
+  storage:
+    type: mysql
+    db:
+      host: mysql
+      port: 3306
+      name: nacos
+      username: nacos
+      password: nacos
+      param: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+
+service:
+  type: ClusterIP
+  port: 8848
+
+  resources:
+    requests:
+      cpu: 300m
+      memory: 768Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi

@@ -1,0 +1,5 @@
+managedNamespaces:
+  - microservices
+
+telemetry:
+  disabled: true

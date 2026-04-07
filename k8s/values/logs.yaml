@@ -1,0 +1,64 @@
+name: logs
+kind: Deployment
+replicaCount: 1
+
+image:
+  repository: logs
+  tag: "0.0.1-SNAPSHOT"
+  pullPolicy: Never
+
+containerPort: 8080
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: docker
+  - name: SPRING_CLOUD_NACOS_HOST
+    value: nacos-cs
+  - name: SPRING_CLOUD_ROCKETMQ_PROXY_HOST
+    value: rocketmq-proxy
+  - name: OTEL_SERVICE_NAME
+    value: logs
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://otel-collector-opentelemetry-collector:4318
+  - name: OTEL_LOGS_EXPORTER
+    value: otlp
+  - name: OTEL_TRACES_EXPORTER
+    value: otlp
+  - name: OTEL_METRICS_EXPORTER
+    value: otlp
+  - name: OTEL_CONFIG_FILE
+    value: ""
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /actuator/health/liveness
+    port: http
+  initialDelaySeconds: 120
+  periodSeconds: 15
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /actuator/health/readiness
+    port: http
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  failureThreshold: 5
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 300m
+    memory: 1Gi

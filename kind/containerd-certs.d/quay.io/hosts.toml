@@ -1,0 +1,9 @@
+server = "https://quay.io"
+
+[host."https://quay.m.daocloud.io"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://quay.io"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false

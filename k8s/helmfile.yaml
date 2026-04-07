@@ -1,0 +1,187 @@
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana-community.github.io/helm-charts
+  - name: jaegertracing
+    url: https://jaegertracing.github.io/helm-charts
+  - name: elastic
+    url: https://helm.elastic.co
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+helmDefaults:
+  createNamespace: true
+  wait: false
+
+namespace: microservices
+
+releases:
+  # ── Middleware ──────────────────────────────────────────────
+  - name: mysql
+    chart: ./charts/microservice
+    values:
+      - values/mysql.yaml
+
+  - name: nacos
+    chart: ./external/nacos-k8s/helm
+    values:
+      - values/nacos.yaml
+    needs:
+      - mysql
+
+  - name: rocketmq
+    chart: oci://registry-1.docker.io/apache/rocketmq
+    version: "0.0.1"
+    values:
+      - values/rocketmq.yaml
+    needs:
+      - nacos
+
+  - name: rocketmq-init-topics
+    chart: ./charts/microservice
+    values:
+      - values/rocketmq-init-topics.yaml
+    needs:
+      - rocketmq
+
+  # ── Observability ───────────────────────────────────────────
+  - name: eck-operator
+    chart: elastic/eck-operator
+    labels:
+      stack: observability
+    values:
+      - values/eck-operator.yaml
+
+  - name: eck-stack
+    chart: elastic/eck-stack
+    labels:
+      stack: observability
+    values:
+      - values/eck-stack.yaml
+    needs:
+      - eck-operator
+
+  - name: kube-prometheus-stack
+    chart: prometheus-community/kube-prometheus-stack
+    version: "82.13.6"
+    labels:
+      stack: observability
+    values:
+      - values/kube-prometheus-stack.yaml
+
+  - name: grafana-dashboards
+    chart: ./charts/grafana-dashboards-configmap
+    namespace: microservices
+    labels:
+      stack: observability
+    needs:
+      - kube-prometheus-stack
+
+  - name: loki
+    chart: grafana/loki
+    version: "9.2.0"
+    labels:
+      stack: observability
+    values:
+      - values/loki.yaml
+
+  - name: tempo
+    chart: grafana/tempo
+    version: "2.0.0"
+    labels:
+      stack: observability
+    values:
+      - values/tempo.yaml
+
+  - name: jaeger
+    chart: jaegertracing/jaeger
+    version: "4.6.0"
+    labels:
+      stack: observability
+    values:
+      - values/jaeger.yaml
+
+  - name: zipkin
+    chart: ./charts/microservice
+    labels:
+      stack: observability
+    values:
+      - values/zipkin.yaml
+
+  - name: otel-collector
+    chart: open-telemetry/opentelemetry-collector
+    version: "0.147.1"
+    values:
+      - values/otel-collector.yaml
+    needs:
+      - jaeger
+      - zipkin
+      - eck-stack
+      - kube-prometheus-stack
+      - loki
+      - tempo
+
+  - name: sentinel-dashboard
+    chart: ./charts/microservice
+    values:
+      - values/sentinel-dashboard.yaml
+
+  # ── App Services ────────────────────────────────────────────
+  - name: gateway
+    chart: ./charts/microservice
+    values:
+      - values/gateway.yaml
+    needs:
+      - rocketmq
+      - nacos
+      - otel-collector
+
+  - name: multiplication
+    chart: ./charts/microservice
+    values:
+      - values/multiplication.yaml
+    needs:
+      - rocketmq
+      - nacos
+      - otel-collector
+
+  - name: gamification
+    chart: ./charts/microservice
+    values:
+      - values/gamification.yaml
+    needs:
+      - rocketmq
+      - nacos
+      - otel-collector
+
+  - name: logs
+    chart: ./charts/microservice
+    values:
+      - values/logs.yaml
+    needs:
+      - rocketmq
+      - nacos
+      - otel-collector
+
+  - name: frontend
+    chart: ./charts/microservice
+    values:
+      - values/frontend.yaml
+
+  # ── Ingress ─────────────────────────────────────────────────
+  - name: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    values:
+      - values/ingress-nginx.yaml
+
+  - name: ingress-rules
+    chart: ./charts/ingress-rules
+    namespace: microservices
+    values:
+      - values/ingress-rules.yaml
+    needs:
+      - ingress-nginx

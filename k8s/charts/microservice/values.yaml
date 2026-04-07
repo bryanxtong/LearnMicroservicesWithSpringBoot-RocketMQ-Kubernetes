@@ -1,0 +1,109 @@
+# Default values — override per service in values/<service>.yaml
+
+name: microservice
+
+# workload type: Deployment | StatefulSet | Job
+kind: Deployment
+
+replicaCount: 1
+
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Container port
+containerPort: 8080
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  path: /
+  pathType: Prefix
+  annotations: {}
+
+# Override container command (optional)
+command: []
+args: []
+
+env: []
+# - name: FOO
+#   value: bar
+
+envFrom: []
+# - secretRef:
+#     name: my-secret
+# - configMapRef:
+#     name: my-cm
+
+# Extra volumes (e.g. configmaps)
+extraVolumes: []
+extraVolumeMounts: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /actuator/health/liveness
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 15
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /actuator/health/readiness
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 5
+
+# Disable probes for non-Spring services
+customLivenessProbe: {}
+customReadinessProbe: {}
+
+# HPA
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+# Job-specific (only used when kind=Job)
+job:
+  restartPolicy: OnFailure
+  command: []
+
+# StatefulSet-specific
+persistence:
+  enabled: false
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  mountPath: /data
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

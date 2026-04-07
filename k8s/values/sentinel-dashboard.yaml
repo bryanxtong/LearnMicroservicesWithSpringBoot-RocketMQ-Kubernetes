@@ -1,0 +1,50 @@
+name: sentinel-dashboard
+kind: Deployment
+replicaCount: 1
+
+image:
+  repository: sentinel-dashboard
+  tag: "v1.8.8"
+  pullPolicy: Never
+
+containerPort: 8080
+
+env:
+  - name: JVM_OPTS
+    value: "-Xms64m -Xmx192m"
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+customLivenessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 180
+  periodSeconds: 15
+  timeoutSeconds: 15
+  failureThreshold: 5
+
+customReadinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  timeoutSeconds: 15
+  failureThreshold: 5
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 300m
+    memory: 512Mi

@@ -1,0 +1,25 @@
+server = "https://docker.io"
+
+[host."https://docker.m.daocloud.io"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://hub-mirror.c.163.com"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://mirror.baidubce.com"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://dockerproxy.com"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://x9r52uz5.mirror.aliyuncs.com"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://registry-1.docker.io"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false

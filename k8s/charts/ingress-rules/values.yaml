@@ -1,0 +1,8 @@
+# Default values - overridden by k8s/values/ingress-rules.yaml via helmfile
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+
+services: {}

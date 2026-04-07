@@ -1,0 +1,43 @@
+name: zipkin
+kind: Deployment
+replicaCount: 1
+
+image:
+  repository: openzipkin/zipkin
+  tag: latest
+  pullPolicy: IfNotPresent
+
+containerPort: 9411
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 9411
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 9411
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 9411
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi

@@ -1,0 +1,80 @@
+{{- if .Values.ingress.enabled }}
+# Ingress for services with path rewriting (rewrite-target: /$1)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress-rewrite
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  - http:
+      paths:
+      {{- range $key, $service := .Values.services }}
+      {{- if and $service.enabled $service.rewrite }}
+      - path: {{ $service.path }}
+        pathType: {{ default "ImplementationSpecific" $service.pathType }}
+        backend:
+          service:
+            name: {{ $service.serviceName }}
+            port:
+              number: {{ $service.port }}
+      {{- end }}
+      {{- end }}
+---
+# Ingress for all other HTTP services (no rewrite)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  - http:
+      paths:
+      {{- range $key, $service := .Values.services }}
+      {{- if and $service.enabled (not $service.rewrite) (not $service.httpsBackend) }}
+      - path: {{ $service.path }}
+        pathType: {{ default "Prefix" $service.pathType }}
+        backend:
+          service:
+            name: {{ $service.serviceName }}
+            port:
+              number: {{ $service.port }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+---
+# Ingress for HTTPS backend services (e.g. Kibana)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress-https
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  - http:
+      paths:
+      {{- range $key, $service := .Values.services }}
+      {{- if and $service.enabled $service.httpsBackend }}
+      - path: {{ $service.path }}
+        pathType: {{ default "Prefix" $service.pathType }}
+        backend:
+          service:
+            name: {{ $service.serviceName }}
+            port:
+              number: {{ $service.port }}
+      {{- end }}
+      {{- end }}

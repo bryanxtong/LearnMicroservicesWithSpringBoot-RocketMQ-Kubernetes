@@ -1,0 +1,203 @@
+prometheus:
+  prometheusSpec:
+    routePrefix: "/prometheus"
+    retention: 1h
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    additionalScrapeConfigs:
+      - job_name: 'otel-collector'
+        scrape_interval: 10s
+        static_configs:
+          - targets: ['otel-collector-opentelemetry-collector:8889']
+          - targets: ['otel-collector-opentelemetry-collector:8888']
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+grafana:
+  enabled: true
+  adminPassword: admin
+
+  plugins:
+    - grafana-opensearch-datasource
+
+  # grafana.ini — 从 docker/config/grafana/grafana.ini 迁移（只保留有效配置项）
+  grafana.ini:
+    paths:
+      provisioning: /etc/grafana/provisioning
+    server:
+      protocol: http
+      http_port: 3000
+      root_url: "%(protocol)s://%(domain)s/grafana/"
+      serve_from_sub_path: true
+    auth:
+      disable_login_form: true
+    auth.anonymous:
+      enabled: true
+      org_name: Main Org.
+      org_role: Admin
+
+  persistence:
+    enabled: true
+    size: 1Gi
+
+  # sidecar 自动发现带 label 的 ConfigMap，加载 datasources 和 dashboards
+  sidecar:
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: false
+      label: grafana_datasource
+      labelValue: "1"
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: microservices
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+
+  # datasources — 从 docker/config/grafana/provisioning/datasources/ 迁移
+  # k8s 中服务名与 docker-compose 不同，已修正 URL
+  additionalDataSources:
+    - name: Prometheus
+      uid: webstore-metrics
+      type: prometheus
+      url: http://kube-prometheus-stack-prometheus:9090
+      editable: true
+      isDefault: true
+
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki:3100
+      editable: true
+
+    - name: Tempo
+      type: tempo
+      url: http://tempo:3200
+      editable: true
+      isDefault: false
+      jsonData:
+        httpMethod: GET
+
+    - name: Jaeger
+      uid: jaeger-traces
+      type: jaeger
+      url: http://jaeger-all-in-one:16686
+      editable: true
+      isDefault: false
+      jsonData:
+        httpHeaderName1: "Accept-Encoding"
+      secureJsonData:
+        httpHeaderValue1: "identity"
+
+    - name: Zipkin
+      type: zipkin
+      uid: EbPG8fYoz
+      url: http://zipkin:9411
+      editable: true
+      isDefault: false
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: 'loki'
+          spanStartTimeShift: '1h'
+          spanEndTimeShift: '-1h'
+          tags: ['job', 'instance', 'pod', 'namespace']
+          filterByTraceID: false
+          filterBySpanID: false
+          customQuery: true
+          query: 'method="${__span.tags.method}"'
+        tracesToMetrics:
+          datasourceUid: 'webstore-metrics'
+          spanStartTimeShift: '1h'
+          spanEndTimeShift: '-1h'
+          tags:
+            - key: 'service.name'
+              value: 'service'
+            - key: 'job'
+          queries:
+            - name: 'Sample query'
+              query: 'sum(rate(traces_spanmetrics_latency_bucket{$__tags}[5m]))'
+        nodeGraph:
+          enabled: true
+        traceQuery:
+          timeShiftEnabled: true
+          spanStartTimeShift: '1h'
+          spanEndTimeShift: '-1h'
+        spanBar:
+          type: 'None'
+
+    - name: Elastic
+      type: elasticsearch
+      url: https://elasticsearch-es-http:9200
+      editable: true
+      basicAuth: true
+      basicAuthUser: elastic
+      jsonData:
+        timeField: '@timestamp'
+        tlsSkipVerify: true
+      secureJsonData:
+        basicAuthPassword: yspA0N5Uzkm3FRxtve9fUfys  # Elasticsearch password from elasticsearch-es-elastic-user secret
+
+    - name: OpenSearch
+      type: grafana-opensearch-datasource
+      url: http://opensearch:9200/
+      editable: true
+      isDefault: false
+      jsonData:
+        database: otel
+        flavor: opensearch
+        logLevelField: severity
+        logMessageField: body
+        pplEnabled: true
+        timeField: observedTimestamp
+        version: 2.16.0
+
+  # dashboard provider — dashboards JSON 通过 sidecar 从带 label 的 ConfigMap 加载
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: Demo
+          orgId: 1
+          folder: Demo
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /tmp/dashboards/Demo
+
+  livenessProbe:
+    initialDelaySeconds: 300
+    timeoutSeconds: 30
+    failureThreshold: 20
+  readinessProbe:
+    initialDelaySeconds: 120
+    timeoutSeconds: 30
+    failureThreshold: 20
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 300Mi
+    limits:
+      memory: 800Mi
+
+alertmanager:
+  enabled: false
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true

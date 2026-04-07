@@ -1,0 +1,117 @@
+name: rocketmq-init-topics
+kind: Job
+replicaCount: 1
+
+image:
+  repository: apache/rocketmq
+  tag: "5.4.0"
+  pullPolicy: IfNotPresent
+
+containerPort: 8080
+
+service:
+  enabled: false
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+job:
+  restartPolicy: OnFailure
+  command:
+    - sh
+    - -c
+    - |
+      set -e
+      NAMESERVER="rocketmq-nameserver:9876"
+      CLUSTER="DefaultCluster"
+      MAX_RETRIES=3
+      RETRY_DELAY=2
+
+      # Function to create and verify topic with retry
+      create_topic() {
+        local topic=$1
+        local attempt=1
+
+        while [ $attempt -le $MAX_RETRIES ]; do
+          echo "[Attempt $attempt/$MAX_RETRIES] Creating topic: $topic"
+
+          # Create topic with FIFO type
+          if /home/rocketmq/rocketmq-5.4.0/bin/mqadmin updateTopic -n $NAMESERVER -c $CLUSTER -t $topic -a +message.type=FIFO > /tmp/${topic}.log 2>&1; then
+            echo "[SUCCESS] Topic $topic created successfully"
+          else
+            echo "[ERROR] Failed to create topic $topic"
+            cat /tmp/${topic}.log
+            attempt=$((attempt + 1))
+            if [ $attempt -le $MAX_RETRIES ]; then
+              echo "[INFO] Retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+              continue
+            else
+              echo "[FAILED] Topic $topic creation failed after $MAX_RETRIES attempts"
+              return 1
+            fi
+          fi
+
+          # Verify topic exists
+          sleep 2
+          if /home/rocketmq/rocketmq-5.4.0/bin/mqadmin topicList -n $NAMESERVER 2>/dev/null | grep -q "^$topic$"; then
+            echo "[SUCCESS] Topic $topic verified"
+            return 0
+          else
+            echo "[WARNING] Topic $topic not found in list, retrying..."
+            attempt=$((attempt + 1))
+            if [ $attempt -le $MAX_RETRIES ]; then
+              sleep $RETRY_DELAY
+              continue
+            else
+              echo "[FAILED] Topic $topic verification failed after $MAX_RETRIES attempts"
+              return 1
+            fi
+          fi
+        done
+      }
+
+      echo "=========================================="
+      echo "RocketMQ Topic Initialization"
+      echo "=========================================="
+
+      FAILED_TOPICS=""
+
+      # Create attempts-topic
+      if create_topic "attempts-topic"; then
+        echo "[SUCCESS] attempts-topic initialized"
+      else
+        echo "[FAILED] attempts-topic initialization failed"
+        FAILED_TOPICS="$FAILED_TOPICS attempts-topic"
+      fi
+
+      echo ""
+
+      # Create logs topic
+      if create_topic "logs"; then
+        echo "[SUCCESS] logs topic initialized"
+      else
+        echo "[FAILED] logs topic initialization failed"
+        FAILED_TOPICS="$FAILED_TOPICS logs"
+      fi
+
+      echo ""
+      echo "=========================================="
+
+      if [ -z "$FAILED_TOPICS" ]; then
+        echo "✓ All topics created successfully"
+        exit 0
+      else
+        echo "✗ Failed topics:$FAILED_TOPICS"
+        exit 1
+      fi
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

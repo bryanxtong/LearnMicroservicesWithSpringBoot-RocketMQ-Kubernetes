@@ -1,0 +1,59 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  useTestSchema: true
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 5Gi
+  containerSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+  podSecurityContext:
+    fsGroup: 10001
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+backend:
+  enabled: false
+  replicas: 0
+
+read:
+  enabled: false
+  replicas: 0
+
+write:
+  enabled: false
+  replicas: 0
+
+gateway:
+  enabled: false
+
+monitoring:
+  lokiCanary:
+    enabled: false
+  selfMonitoring:
+    enabled: false
+  serviceMonitor:
+    enabled: false
+
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false
+
+test:
+  enabled: false

@@ -1,0 +1,9 @@
+server = "https://gcr.io"
+
+[host."https://gcr.m.daocloud.io"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false
+
+[host."https://gcr.io"]
+  capabilities = ["pull", "resolve"]
+  skip_verify = false

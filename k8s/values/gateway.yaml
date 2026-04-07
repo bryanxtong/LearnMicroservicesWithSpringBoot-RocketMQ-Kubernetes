@@ -1,0 +1,97 @@
+name: gateway
+kind: Deployment
+replicaCount: 1
+
+image:
+  repository: gateway
+  tag: "0.0.1-SNAPSHOT"
+  pullPolicy: Never
+
+containerPort: 8000
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: nginx
+  host: api.microservices.local
+  path: /
+  pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: docker
+  - name: SPRING_CLOUD_NACOS_HOST
+    value: nacos-cs
+  - name: SPRING_CLOUD_ROCKETMQ_PROXY_HOST
+    value: rocketmq-proxy
+  - name: OTEL_SERVICE_NAME
+    value: gateway
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://otel-collector-opentelemetry-collector:4318
+  - name: OTEL_LOGS_EXPORTER
+    value: otlp
+  - name: OTEL_TRACES_EXPORTER
+    value: otlp
+  - name: OTEL_METRICS_EXPORTER
+    value: otlp
+  - name: OTEL_CONFIG_FILE
+    value: ""
+  - name: JAVA_OPTS
+    value: "-Djava.net.preferIPv4Stack=true"
+
+livenessProbe:
+  enabled: false
+  httpGet:
+    path: /actuator/health/liveness
+    port: http
+  initialDelaySeconds: 180
+  periodSeconds: 15
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: false
+  httpGet:
+    path: /actuator/health/readiness
+    port: http
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  failureThreshold: 5
+
+customLivenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: http
+  initialDelaySeconds: 180
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+customReadinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: http
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi

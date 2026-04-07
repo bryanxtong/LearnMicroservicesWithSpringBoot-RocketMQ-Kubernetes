@@ -1,0 +1,69 @@
+name: mysql
+kind: StatefulSet
+replicaCount: 1
+
+image:
+  repository: example/mysql
+  tag: "8.0.31"
+  pullPolicy: Never
+
+containerPort: 3306
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 3306
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+customLivenessProbe:
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}
+  initialDelaySeconds: 600
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+customReadinessProbe:
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}
+  initialDelaySeconds: 600
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 10
+
+env:
+  - name: MYSQL_ROOT_PASSWORD
+    value: "root"
+  - name: MYSQL_DATABASE
+    value: nacos
+  - name: MYSQL_USER
+    value: nacos
+  - name: MYSQL_PASSWORD
+    value: nacos
+  - name: LANG
+    value: C.UTF-8
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  mountPath: /var/lib/mysql
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1000m
+    memory: 2Gi

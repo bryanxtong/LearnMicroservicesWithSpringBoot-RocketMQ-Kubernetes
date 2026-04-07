@@ -49,7 +49,9 @@ public class ProducerInstance {
 
     public Producer getProducer(String endpoint) throws ClientException {
         ClientServiceProvider provider = ClientServiceProvider.loadService();
-        ClientConfigurationBuilder builder = ClientConfiguration.newBuilder().setEndpoints(endpoint);
+        ClientConfigurationBuilder builder = ClientConfiguration.newBuilder()
+                .setEndpoints(endpoint)
+                .setRequestTimeout(java.time.Duration.ofSeconds(10));
         ClientConfiguration configuration = builder.build();
         producer = provider.newProducerBuilder()
                 .setClientConfiguration(configuration)

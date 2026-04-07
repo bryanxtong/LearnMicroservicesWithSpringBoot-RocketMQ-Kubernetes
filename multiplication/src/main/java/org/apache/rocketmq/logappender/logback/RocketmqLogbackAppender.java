@@ -104,12 +104,12 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             if (keyHash != null) {
                 messageBuilder.setMessageGroup(keyHash);
             }
-            if (keys != null && keys.length != 0) {
-                messageBuilder.setKeys(keys);
+            if (this.keys != null && this.keys.length != 0) {
+                messageBuilder.setKeys(this.keys);
             }
 
-            if (tag != null && tag.length() != 0) {
-                messageBuilder.setTag(tag);
+            if (this.tag != null && this.tag.length() != 0) {
+                messageBuilder.setTag(this.tag);
             }
             //currently there is no easy to add more properties as they return new HashMap<>(properties) in MessageImpl.getProperties()
             messageBuilder.addProperty(ProducerInstance.APPENDER_TYPE, ProducerInstance.LOGBACK_APPENDER);
@@ -125,8 +125,12 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             Message msg = messageBuilder.build();
             //customize the code end
 
-            //Send message and do not wait for the ack from the message broker.
-            producer.send(msg);
+            //Send message asynchronously without waiting for the ack from the message broker.
+            producer.sendAsync(msg).whenComplete((sendReceipt, throwable) -> {
+                if (throwable != null) {
+                    // Log send failed, do nothing to avoid blocking
+                }
+            });
         } catch (Exception e) {
             addError("Could not send message in RocketmqLogbackAppender [" + name + "]. Message is : " + logStr, e);
         }

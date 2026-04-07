@@ -1,0 +1,50 @@
+name: frontend
+kind: Deployment
+replicaCount: 1
+
+image:
+  repository: challenges-frontend
+  tag: "1.0"
+  pullPolicy: Never
+
+containerPort: 80
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false   # 由 ingress-rules chart 统一管理
+
+env:
+  - name: SPRING_CLOUD_GATEWAY_HOST
+    value: gateway
+
+# Frontend is nginx-based, no Spring Actuator
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+customLivenessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+customReadinessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi

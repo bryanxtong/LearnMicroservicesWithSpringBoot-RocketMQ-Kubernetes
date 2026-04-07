@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-otel-collector
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "Demo"
+data:
+  opentelemetry-collector.json: |
+{{ .Files.Get "dashboards/opentelemetry-collector.json" | indent 4 }}

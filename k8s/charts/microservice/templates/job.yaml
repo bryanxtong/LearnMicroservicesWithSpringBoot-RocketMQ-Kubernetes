@@ -1,0 +1,32 @@
+{{- if eq .Values.kind "Job" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      restartPolicy: {{ .Values.job.restartPolicy | default "OnFailure" }}
+      containers:
+        - name: {{ .Values.name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.job.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

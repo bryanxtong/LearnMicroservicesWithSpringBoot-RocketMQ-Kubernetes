@@ -1,0 +1,56 @@
+eck-elasticsearch:
+  version: 9.3.2
+
+  nodeSets:
+    - name: elasticsearch
+      count: 1
+      config:
+        node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Gi
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              env:
+                - name: ES_JAVA_OPTS
+                  value: "-Xms1024m -Xmx1024m"
+              resources:
+                requests:
+                  memory: 2Gi
+                  cpu: 500m
+                limits:
+                  memory: 2Gi
+                  cpu: 1000m
+
+eck-kibana:
+  version: 9.3.2
+
+  count: 1
+
+  elasticsearchRef:
+    name: elasticsearch
+    namespace: microservices
+
+  config:
+    server.host: "0.0.0.0"
+    elasticsearch.ssl.verificationMode: "none"
+
+  podTemplate:
+    spec:
+      containers:
+        - name: kibana
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 200m
+            limits:
+              memory: 1Gi
+              cpu: 1000m
