@@ -32,6 +32,14 @@ grafana:
   plugins:
     - grafana-opensearch-datasource
 
+  # 从 Secret 注入 Elasticsearch 密码环境变量
+  extraEnvs:
+    - name: ELASTICSEARCH_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: elasticsearch-es-elastic-user
+          key: elastic
+
   # grafana.ini — 从 docker/config/grafana/grafana.ini 迁移（只保留有效配置项）
   grafana.ini:
     paths:
@@ -70,22 +78,34 @@ grafana:
       provider:
         foldersFromFilesStructure: true
 
-  # datasources — 从 docker/config/grafana/provisioning/datasources/ 迁移
-  # k8s 中服务名与 docker-compose 不同，已修正 URL
+  # datasources — migrated from docker/config/grafana/provisioning/datasources/
+  # Service names differ between k8s and docker-compose, URLs have been corrected
+  #
+  # URL path suffix rules:
+  # - If a service configures routePrefix or base_path, the URL MUST include that path suffix
+  # - If a service has no path prefix configured, the URL only needs host:port
+  #
+  # Examples:
+  # - Prometheus: routePrefix="/prometheus" → URL must include /prometheus
+  # - Jaeger: base_path="/jaeger" → URL must include /jaeger
+  # - Loki: no path prefix → URL only needs host:port
   additionalDataSources:
+    # Prometheus configures routePrefix: "/prometheus", so URL must include /prometheus
     - name: Prometheus
       uid: webstore-metrics
       type: prometheus
-      url: http://kube-prometheus-stack-prometheus:9090
+      url: http://kube-prometheus-stack-prometheus:9090/prometheus
       editable: true
       isDefault: true
 
+    # Loki has no path prefix configured, use host:port only
     - name: Loki
       type: loki
       uid: loki
       url: http://loki:3100
       editable: true
 
+    # Tempo has no path prefix configured, use host:port only
     - name: Tempo
       type: tempo
       url: http://tempo:3200
@@ -94,10 +114,11 @@ grafana:
       jsonData:
         httpMethod: GET
 
+    # Jaeger configures base_path: "/jaeger", so URL must include /jaeger
     - name: Jaeger
       uid: jaeger-traces
       type: jaeger
-      url: http://jaeger-all-in-one:16686
+      url: http://jaeger-all-in-one:16686/jaeger
       editable: true
       isDefault: false
       jsonData:
@@ -105,10 +126,11 @@ grafana:
       secureJsonData:
         httpHeaderValue1: "identity"
 
+    # Zipkin configures base href: "/zipkin", so URL must include /zipkin
     - name: Zipkin
       type: zipkin
       uid: EbPG8fYoz
-      url: http://zipkin:9411
+      url: http://zipkin:9411/zipkin
       editable: true
       isDefault: false
       jsonData:
@@ -151,7 +173,7 @@ grafana:
         timeField: '@timestamp'
         tlsSkipVerify: true
       secureJsonData:
-        basicAuthPassword: yspA0N5Uzkm3FRxtve9fUfys  # Elasticsearch password from elasticsearch-es-elastic-user secret
+        basicAuthPassword: ${ELASTICSEARCH_PASSWORD}  # Elasticsearch password from elasticsearch-es-elastic-user secret
 
     - name: OpenSearch
       type: grafana-opensearch-datasource
@@ -168,25 +190,25 @@ grafana:
         version: 2.16.0
 
   # dashboard provider — dashboards JSON 通过 sidecar 从带 label 的 ConfigMap 加载
-  dashboardProviders:
-    dashboardproviders.yaml:
-      apiVersion: 1
-      providers:
-        - name: Demo
-          orgId: 1
-          folder: Demo
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /tmp/dashboards/Demo
+  # dashboardProviders:
+  #   dashboardproviders.yaml:
+  #     apiVersion: 1
+  #     providers:
+  #       - name: Demo
+  #         orgId: 1
+  #         folder: Demo
+  #         type: file
+  #         disableDeletion: false
+  #         editable: true
+  #         options:
+  #           path: /tmp/dashboards/Demo
 
   livenessProbe:
-    initialDelaySeconds: 600
+    initialDelaySeconds: 1800
     timeoutSeconds: 30
     failureThreshold: 20
   readinessProbe:
-    initialDelaySeconds: 600
+    initialDelaySeconds: 1800
     timeoutSeconds: 30
     failureThreshold: 20
 

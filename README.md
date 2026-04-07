@@ -26,7 +26,23 @@ Platform components:
 
 ## Quick start
 
-### Run the full local stack
+### Create a kind cluster
+
+From the repository root, run:
+
+```bash
+kind create cluster --config kind/kind-config.yaml
+```
+
+Run this command from the **repository root** because the config file uses relative paths such as `kind/kind/containerd-certs.d` and `kind/kind-config.yaml`.
+
+### Deploy to Kubernetes
+
+From the `k8s/` directory:
+
+```bash
+helmfile sync
+```
 
 ### Build services locally
 

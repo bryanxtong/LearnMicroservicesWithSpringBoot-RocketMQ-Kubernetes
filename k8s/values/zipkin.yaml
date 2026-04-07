@@ -9,6 +9,11 @@ image:
 
 containerPort: 9411
 
+# Configure Zipkin UI base path for reverse proxy (Ingress)
+env:
+  - name: ZIPKIN_UI_BASEPATH
+    value: "/zipkin"
+
 service:
   enabled: true
   type: ClusterIP
