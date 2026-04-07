@@ -1,3 +1,34 @@
+userconfig:
+  service:
+    extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+    pipelines:
+      traces:
+        receivers: [otlp]
+        exporters: [jaeger_storage_exporter]
+  extensions:
+    healthcheckv2:
+      use_v2: true
+      http:
+        endpoint: 0.0.0.0:13133
+    jaeger_storage:
+      backends:
+        primary_store:
+          memory: {}
+    jaeger_query:
+      base_path: /jaeger
+      storage:
+        traces: primary_store
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  exporters:
+    jaeger_storage_exporter:
+      trace_storage: primary_store
+
 provisionDataStore:
   cassandra: false
   elasticsearch: false

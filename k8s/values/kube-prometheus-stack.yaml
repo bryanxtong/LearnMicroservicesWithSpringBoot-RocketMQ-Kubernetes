@@ -1,5 +1,6 @@
 prometheus:
   prometheusSpec:
+    externalUrl: "/prometheus"
     routePrefix: "/prometheus"
     retention: 1h
     storageSpec:
@@ -26,6 +27,7 @@ prometheus:
 grafana:
   enabled: true
   adminPassword: admin
+  replicas: 1
 
   plugins:
     - grafana-opensearch-datasource
@@ -182,7 +184,7 @@ grafana:
     timeoutSeconds: 30
     failureThreshold: 20
   readinessProbe:
-    initialDelaySeconds: 120
+    initialDelaySeconds: 300
     timeoutSeconds: 30
     failureThreshold: 20
 
