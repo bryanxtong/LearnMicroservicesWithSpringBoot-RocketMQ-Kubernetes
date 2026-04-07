@@ -47,6 +47,8 @@ grafana:
       enabled: true
       org_name: Main Org.
       org_role: Admin
+    database:
+      auto_prune_enabled: false
 
   persistence:
     enabled: true
@@ -180,20 +182,21 @@ grafana:
             path: /tmp/dashboards/Demo
 
   livenessProbe:
-    initialDelaySeconds: 300
+    initialDelaySeconds: 600
     timeoutSeconds: 30
     failureThreshold: 20
   readinessProbe:
-    initialDelaySeconds: 300
+    initialDelaySeconds: 600
     timeoutSeconds: 30
     failureThreshold: 20
 
   resources:
     requests:
       cpu: 100m
-      memory: 300Mi
+      memory: 500Mi
     limits:
-      memory: 800Mi
+      cpu: 500m
+      memory: 1Gi
 
 alertmanager:
   enabled: false
