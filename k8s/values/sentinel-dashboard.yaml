@@ -3,11 +3,11 @@ kind: Deployment
 replicaCount: 1
 
 image:
-  repository: sentinel-dashboard
-  tag: "v1.8.8"
-  pullPolicy: Never
+  repository: bladex/sentinel-dashboard
+  tag: "1.8.8"
+  pullPolicy: IfNotPresent
 
-containerPort: 8080
+containerPort: 8858
 
 env:
   - name: JVM_OPTS
@@ -16,7 +16,7 @@ env:
 service:
   enabled: true
   type: ClusterIP
-  port: 8080
+  port: 8858
 
 livenessProbe:
   enabled: false
@@ -26,7 +26,7 @@ readinessProbe:
 customLivenessProbe:
   httpGet:
     path: /
-    port: 8080
+    port: 8858
   initialDelaySeconds: 180
   periodSeconds: 15
   timeoutSeconds: 15
@@ -35,7 +35,7 @@ customLivenessProbe:
 customReadinessProbe:
   httpGet:
     path: /
-    port: 8080
+    port: 8858
   initialDelaySeconds: 180
   periodSeconds: 10
   timeoutSeconds: 15

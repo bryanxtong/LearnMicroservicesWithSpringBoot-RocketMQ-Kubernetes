@@ -174,6 +174,7 @@ releases:
 
   # ── Ingress ─────────────────────────────────────────────────
   - name: ingress-nginx
+    namespace: ingress-nginx
     chart: ingress-nginx/ingress-nginx
     values:
       - values/ingress-nginx.yaml

@@ -2,7 +2,7 @@ prometheus:
   prometheusSpec:
     externalUrl: "/prometheus"
     routePrefix: "/prometheus"
-    retention: 1h
+    retention: 24h
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -29,16 +29,12 @@ grafana:
   adminPassword: admin
   replicas: 1
 
-  plugins:
-    - grafana-opensearch-datasource
+  plugins: []  # OpenSearch not installed, disable plugin auto-install
 
-  # 从 Secret 注入 Elasticsearch 密码环境变量
-  extraEnvs:
-    - name: ELASTICSEARCH_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: elasticsearch-es-elastic-user
-          key: elastic
+  # envFromSecret — Correct syntax: references elasticsearch-es-elastic-user Secret in microservices namespace
+  # Secret key "elastic" is injected as env var $elastic
+  # Supported by grafana subchart's pod template
+  envFromSecret: elasticsearch-es-elastic-user
 
   # grafana.ini — 从 docker/config/grafana/grafana.ini 迁移（只保留有效配置项）
   grafana.ini:
@@ -61,8 +57,9 @@ grafana:
   persistence:
     enabled: true
     size: 1Gi
+    reclaimPolicy: Retain
 
-  # sidecar 自动发现带 label 的 ConfigMap，加载 datasources 和 dashboards
+  # sidecar auto-discovers labeled ConfigMaps and loads datasources and dashboards
   sidecar:
     datasources:
       enabled: true
@@ -173,7 +170,7 @@ grafana:
         timeField: '@timestamp'
         tlsSkipVerify: true
       secureJsonData:
-        basicAuthPassword: ${ELASTICSEARCH_PASSWORD}  # Elasticsearch password from elasticsearch-es-elastic-user secret
+        basicAuthPassword: ${elastic}  # ES password from elasticsearch-es-elastic-user secret (key: elastic)
 
     - name: OpenSearch
       type: grafana-opensearch-datasource
@@ -204,13 +201,15 @@ grafana:
   #           path: /tmp/dashboards/Demo
 
   livenessProbe:
-    initialDelaySeconds: 1800
+    initialDelaySeconds: 1200
     timeoutSeconds: 30
     failureThreshold: 20
+    periodSeconds: 60
   readinessProbe:
-    initialDelaySeconds: 1800
+    initialDelaySeconds: 1200
     timeoutSeconds: 30
     failureThreshold: 20
+    periodSeconds: 60
 
   resources:
     requests:

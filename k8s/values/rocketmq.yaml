@@ -6,7 +6,7 @@ nameserver:
     tag: "5.4.0"
 
   port: 9876
-  heapSize: "1792M"
+  heapSize: "512M"
 
   service:
     type: ClusterIP

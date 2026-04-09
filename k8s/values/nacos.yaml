@@ -5,7 +5,7 @@ nacos:
   image:
     repository: nacos/nacos-server
     tag: v3.1.1
-    pullPolicy: Never
+    pullPolicy: IfNotPresent
 
   replicaCount: 1
   preferHostMode: hostname

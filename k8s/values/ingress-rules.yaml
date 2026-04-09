@@ -71,4 +71,4 @@ services:
     path: /sentinel-dashboard(?:/|$)(.*)
     pathType: ImplementationSpecific
     serviceName: sentinel-dashboard
-    port: 8080
+    port: 8858
