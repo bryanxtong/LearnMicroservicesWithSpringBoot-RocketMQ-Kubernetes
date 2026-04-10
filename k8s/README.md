@@ -179,7 +179,8 @@ helm upgrade --install rocketmq-init-topics ./charts/microservice -n microservic
 helm upgrade --install grafana-dashboards ./charts/grafana-dashboards-configmap -n microservices --create-namespace
 
 # Install kube-prometheus-stack for Prometheus and Grafana.
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n microservices --create-namespace -f values/kube-prometheus-stack.yaml
+# Pin to specific version to match cached images (prometheus-operator v0.90.1, grafana 12.4.2).
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n microservices --create-namespace -f values/kube-prometheus-stack.yaml --version 83.4.0
 
 # Install Jaeger for distributed tracing.
 helm upgrade --install jaeger jaegertracing/jaeger -n microservices --create-namespace -f values/jaeger.yaml
@@ -209,14 +210,31 @@ The ingress rules are defined in `charts/ingress-rules` and rendered from `value
 
 Current paths include:
 - `/` → frontend
-- `/api/(.*)` → gateway
+- `/api/(.*)` → gateway (rewrite: true)
 - `/grafana` → Grafana
 - `/prometheus` → Prometheus
 - `/jaeger` → Jaeger
 - `/zipkin` → Zipkin
 - `/kibana` → Kibana over HTTPS backend
-- `/nacos/(.*)` → Nacos
-- `/sentinel-dashboard/` → Sentinel dashboard
+- `/nacos/(.*)` → Nacos (rewrite: true)
+- `/sentinel-dashboard/` → Sentinel dashboard (rewrite: true)
+
+### Path suffix configuration
+
+Due to ingress path configuration, some services require base path configuration to work correctly:
+
+| Service | Ingress Path | Configuration Required |
+|---------|--------------|----------------------|
+| Grafana | `/grafana` | `root_url: "%(protocol)s://%(domain)s/grafana/"` in grafana.ini |
+| Prometheus | `/prometheus` | No special configuration needed |
+| Jaeger | `/jaeger` | `base_path: /jaeger` in jaeger-query config |
+| Zipkin | `/zipkin` | `ZIPKIN_UI_BASEPATH: /zipkin` env variable |
+| Kibana | `/kibana` | No special configuration needed |
+| Nacos | `/nacos/(.*)` | Uses ingress rewrite, no service config needed |
+| Sentinel | `/sentinel-dashboard/` | Uses ingress rewrite, no service config needed |
+| Gateway | `/api/(.*)` | Uses ingress rewrite, no service config needed |
+
+Services with `rewrite: true` in ingress-rules handle path rewriting at the ingress level.
 
 ## Port-forward examples
 
@@ -234,6 +252,58 @@ kubectl port-forward -n microservices svc/sentinel-dashboard 8858:8080
 ## External access
 
 If you use ingress locally, configure `/etc/hosts` with your ingress IP and the hostnames used by `values/gateway.yaml` and `values/frontend.yaml`.
+
+## Registry Mirrors (Image Pull Acceleration)
+
+Kind cluster is configured with containerd registry mirrors to accelerate image pulls.
+
+### How It Works
+
+Containerd uses `plugins."io.containerd.grpc.v1.cri".registry.mirrors` to configure image accelerators. When pulling an image, it tries each mirror in order and automatically falls back to the next if one fails.
+
+### Configured Mirrors
+
+| Source | Mirrors |
+|--------|---------|
+| docker.io | Aliyun, DaoCloud, NetEase, Baidu and other China-region mirrors |
+| quay.io | DaoCloud mirror |
+| gcr.io | DaoCloud mirror |
+| ghcr.io | DaoCloud mirror |
+
+### Configuration
+
+Configure registry mirrors in `kind/kind-config.yaml` before creating the cluster:
+
+Modify `containerdConfigPatches` in `kind/kind-config.yaml`, then create the cluster:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kind
+
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+```
+
+Then create corresponding host.toml config files in `kind/containerd-certs.d/` directory.
+
+### Loading Local Images
+
+For images with `pullPolicy: Never` (e.g., MySQL), you need to manually build and load them into the kind cluster:
+
+```bash
+# Build the image
+docker build -t example/mysql:8.0.31 docker/image/mysql/8/
+
+# Load into kind cluster
+kind load docker-image example/mysql:8.0.31 --name kind
+
+# Same for other microservice images
+docker build -t multiplication:0.0.1-SNAPSHOT multiplication/
+kind load docker-image multiplication:0.0.1-SNAPSHOT --name kind
+```
 
 ## Teardown
 

@@ -57,7 +57,6 @@ grafana:
   persistence:
     enabled: true
     size: 1Gi
-    reclaimPolicy: Retain
 
   # sidecar auto-discovers labeled ConfigMaps and loads datasources and dashboards
   sidecar:
@@ -201,15 +200,15 @@ grafana:
   #           path: /tmp/dashboards/Demo
 
   livenessProbe:
-    initialDelaySeconds: 1200
+    initialDelaySeconds: 1800
     timeoutSeconds: 30
-    failureThreshold: 20
-    periodSeconds: 60
+    failureThreshold: 50
+    periodSeconds: 30
   readinessProbe:
-    initialDelaySeconds: 1200
+    initialDelaySeconds: 1800
     timeoutSeconds: 30
-    failureThreshold: 20
-    periodSeconds: 60
+    failureThreshold: 50
+    periodSeconds: 30
 
   resources:
     requests:

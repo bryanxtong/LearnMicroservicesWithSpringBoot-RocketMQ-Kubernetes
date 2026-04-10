@@ -16,10 +16,10 @@ extraEnvs:
 resources:
   requests:
     cpu: 100m
-    memory: 256Mi
+    memory: 512Mi
   limits:
     cpu: 500m
-    memory: 512Mi
+    memory: 1Gi
 
 livenessProbe:
   httpGet:
@@ -34,9 +34,9 @@ readinessProbe:
   httpGet:
     path: /
     port: 13133
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
   failureThreshold: 3
 
 ports:
@@ -85,6 +85,9 @@ config:
         grpc:
           endpoint: "0.0.0.0:4317"
 
+  connectors:
+    spanmetrics: {}
+
   exporters:
     debug: {}
 
@@ -94,7 +97,7 @@ config:
 
     prometheus:
       endpoint: "0.0.0.0:8889"
-      namespace: test-space
+      # namespace: ""
       send_timestamps: true
       metric_expiration: 180m
       enable_open_metrics: true
@@ -156,13 +159,13 @@ config:
     extensions: [pprof, zpages, health_check, basicauth/loki, basicauth]
     pipelines:
       metrics:
-        receivers: [otlp]
+        receivers: [otlp, spanmetrics]
         processors: [batch]
         exporters: [debug, prometheus]
       traces:
         receivers: [otlp]
         processors: [batch]
-        exporters: [debug, zipkin, otlp_grpc, otlp_http/tempo, elasticsearch]
+        exporters: [debug, zipkin, otlp_grpc, otlp_http/tempo, elasticsearch, spanmetrics]
       logs:
         receivers: [otlp]
         exporters: [debug, otlp_http/loki, elasticsearch]
