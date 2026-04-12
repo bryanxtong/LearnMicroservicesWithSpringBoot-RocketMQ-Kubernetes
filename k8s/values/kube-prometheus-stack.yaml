@@ -174,8 +174,8 @@ grafana:
       jsonData:
         tracesToLogsV2:
           datasourceUid: 'loki'
-          spanStartTimeShift: '1h'
-          spanEndTimeShift: '-1h'
+          spanStartTimeShift: '-1h'
+          spanEndTimeShift: '1h'
           tags: ['job', 'instance', 'pod', 'namespace']
           filterByTraceID: false
           filterBySpanID: false
@@ -183,8 +183,8 @@ grafana:
           query: 'method="${__span.tags.method}"'
         tracesToMetrics:
           datasourceUid: 'webstore-metrics'
-          spanStartTimeShift: '1h'
-          spanEndTimeShift: '-1h'
+          spanStartTimeShift: '-1h'
+          spanEndTimeShift: '1h'
           tags:
             - key: 'service.name'
               value: 'service'
@@ -196,8 +196,8 @@ grafana:
           enabled: true
         traceQuery:
           timeShiftEnabled: true
-          spanStartTimeShift: '1h'
-          spanEndTimeShift: '-1h'
+          spanStartTimeShift: '-1h'
+          spanEndTimeShift: '1h'
         spanBar:
           type: 'None'
 
