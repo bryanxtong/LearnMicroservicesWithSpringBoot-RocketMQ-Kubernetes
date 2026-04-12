@@ -58,9 +58,7 @@ git clone https://github.com/nacos-group/nacos-k8s.git k8s/external/nacos-k8s
 
 ## Namespace
 
-The `microservices` namespace is created automatically by Helmfile (`createNamespace: true` is set in `helmfile.yaml`).
-
-When running a single `helm upgrade --install` command, make sure the namespace already exists or add `--create-namespace` for the first install.
+The `microservices` namespace is defined in `templates/namespace.yaml`. Helmfile creates it automatically during `helmfile sync` via `createNamespace: true`. When running a bare `helm upgrade --install` command, apply the namespace manifest first or add `--create-namespace`.
 
 All workloads are deployed into the `microservices` namespace.
 
