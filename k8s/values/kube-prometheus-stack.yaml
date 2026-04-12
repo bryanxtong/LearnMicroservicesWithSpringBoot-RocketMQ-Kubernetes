@@ -134,9 +134,9 @@ grafana:
               value: 'service_name'
           queries:
             - name: 'Span rate'
-              query: 'sum(rate(traces_span_metrics_calls{$__tags}[5m]))'
+              query: 'sum(rate(traces_span_metrics_calls_total{$__tags}[5m]))'
             - name: 'Span latency'
-              query: 'histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_bucket{$__tags}[5m])) by (le, service_name))'
+              query: 'histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_milliseconds_bucket{$__tags}[5m])) by (le, service_name))'
         tracesToLogsV2:
           datasourceUid: 'loki'
           spanStartTimeShift: '-1h'
@@ -191,7 +191,7 @@ grafana:
             - key: 'job'
           queries:
             - name: 'Sample query'
-              query: 'sum(rate(traces_span_metrics_duration_bucket{$__tags}[5m]))'
+              query: 'sum(rate(traces_span_metrics_duration_milliseconds_bucket{$__tags}[5m]))'
         nodeGraph:
           enabled: true
         traceQuery:

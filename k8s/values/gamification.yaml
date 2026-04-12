@@ -38,22 +38,24 @@ env:
     value: ""
 
 livenessProbe:
-  enabled: false
+  enabled: true
   httpGet:
     path: /actuator/health/liveness
     port: http
-  initialDelaySeconds: 90
+  initialDelaySeconds: 60
   periodSeconds: 15
-  failureThreshold: 5
+  timeoutSeconds: 5
+  failureThreshold: 40
 
 readinessProbe:
-  enabled: false
+  enabled: true
   httpGet:
     path: /actuator/health/readiness
     port: http
-  initialDelaySeconds: 60
+  initialDelaySeconds: 30
   periodSeconds: 10
-  failureThreshold: 5
+  timeoutSeconds: 5
+  failureThreshold: 60
 
 autoscaling:
   enabled: false
