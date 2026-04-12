@@ -1,4 +1,5 @@
-# Learn Microservices with Spring Boot -（Spring Cloud Alibaba with RocketMQ）
+# Learn Microservices with Spring Boot — Spring Cloud Alibaba with RocketMQ
+
 This repository contains the source code of the practical use case described in the book [Learn Microservices with Spring Boot 3 (3rd Edition)](https://link.springer.com/book/10.1007/978-1-4842-9757-5).
 The book follows a pragmatic approach to building a Microservice Architecture. You start with a small monolith and examine the pros and cons that come with a move to microservices.
 
@@ -8,7 +9,7 @@ The figure below shows a high-level overview of the final version of our system.
 
 ![Logical View - Chapter 8 (Final)](resources/microservice_patterns-Config-Server-1.png)
 
-## What’s included
+## What's included
 
 Core services:
 - `multiplication` — challenge generation and answer checking
@@ -26,7 +27,15 @@ Platform components:
 
 ## Quick start
 
-### Create a kind cluster
+### 1. Clone external dependencies
+
+The Nacos Helm chart is **not bundled** in this repository. Clone it before running `helmfile sync`:
+
+```bash
+git clone https://github.com/nacos-group/nacos-k8s.git k8s/external/nacos-k8s
+```
+
+### 2. Create a kind cluster
 
 From the repository root, run:
 
@@ -36,7 +45,7 @@ kind create cluster --config kind/kind-config.yaml
 
 Run this command from the **repository root** because the config file uses relative paths such as `kind/kind/containerd-certs.d` and `kind/kind-config.yaml`.
 
-### Deploy to Kubernetes
+### 3. Deploy to Kubernetes
 
 From the `k8s/` directory:
 
@@ -76,12 +85,12 @@ The local Docker Compose and Kubernetes MySQL setup both use `example/mysql:8.0.
 
 ## Kubernetes
 
-Cluster deployment and ingress setup are documented in `k8s/README.md`.
+Cluster deployment, ingress setup, and the full observability drill-down architecture are documented in `k8s/README.md`.
 
 Key manifests and charts live under:
 - `k8s/charts/`
 - `k8s/values/`
-- `k8s/templates/`
+- `k8s/external/` (nacos-k8s must be cloned here first — see above)
 
 ## Access points
 
@@ -102,4 +111,4 @@ Key manifests and charts live under:
 
 ## About the book
 
-If you want the background for this demo, the repository follows the book’s step-by-step microservices case study and shows the transition from a small application to a distributed system.
+If you want the background for this demo, the repository follows the book's step-by-step microservices case study and shows the transition from a small application to a distributed system.

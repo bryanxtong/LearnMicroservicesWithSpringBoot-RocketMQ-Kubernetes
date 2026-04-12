@@ -44,9 +44,21 @@ choco install helmfile
 helm plugin install https://github.com/databus23/helm-diff
 ```
 
+## External dependencies (required before first deploy)
+
+### nacos-k8s
+
+The Nacos Helm chart is sourced from the [nacos-k8s](https://github.com/nacos-group/nacos-k8s) project and is **not bundled** in this repository. You must clone it manually before running `helmfile sync`:
+
+```bash
+git clone https://github.com/nacos-group/nacos-k8s.git k8s/external/nacos-k8s
+```
+
+`helmfile.yaml` references the chart at `./external/nacos-k8s/helm`. The directory must be present or every `helmfile` command that touches the `nacos` release will fail.
+
 ## Namespace
 
-The `microservices` namespace is defined in `templates/namespace.yaml` and Helmfile can create it automatically during `helmfile sync`.
+The `microservices` namespace is created automatically by Helmfile (`createNamespace: true` is set in `helmfile.yaml`).
 
 When running a single `helm upgrade --install` command, make sure the namespace already exists or add `--create-namespace` for the first install.
 
@@ -166,7 +178,7 @@ helmfile sync -l name=ingress-rules
 # Install the local MySQL chart directly with Helm.
 helm upgrade --install mysql ./charts/microservice -n microservices --create-namespace -f values/mysql.yaml
 
-# Install Nacos from the local embedded chart.
+# Install Nacos from the local embedded chart (requires nacos-k8s to be cloned first — see above).
 helm upgrade --install nacos ./external/nacos-k8s/helm -n microservices --create-namespace -f values/nacos.yaml
 
 # Install RocketMQ from the upstream OCI chart.
@@ -311,3 +323,165 @@ kind load docker-image multiplication:0.0.1-SNAPSHOT --name kind
 helmfile destroy
 kubectl delete namespace microservices
 ```
+
+---
+
+## Observability: Distributed Tracing Drill-down
+
+This section explains how distributed traces are collected, stored, and surfaced in Grafana — including how you can drill down from a high-level metric into an individual trace and then into the related logs.
+
+### Architecture overview
+
+```
+Spring Boot services
+        │  OTLP (gRPC :4317 / HTTP :4318)
+        ▼
+OpenTelemetry Collector
+        │
+        ├─► Tempo          (trace storage)          ─► Grafana Explore / TraceQL
+        ├─► Jaeger         (trace UI)               ─► Grafana Jaeger datasource
+        ├─► Zipkin         (trace UI)               ─► Grafana Zipkin datasource
+        ├─► spanmetrics    (connector, in-process)  ─► Prometheus scrape → Grafana metrics
+        ├─► Loki           (structured logs)        ─► Grafana Logs / Explore
+        └─► Elasticsearch  (raw log documents)      ─► Kibana / Grafana Elastic datasource
+```
+
+### Step 1 — OpenTelemetry Collector (`values/otel-collector.yaml`)
+
+The Collector is the single ingestion point. Every backend service sends OTLP data to it.
+
+**Receivers**
+
+| Receiver | Port | Protocol | What it accepts |
+|----------|------|----------|-----------------|
+| `otlp` gRPC | 4317 | gRPC | Traces, metrics, logs from all Spring Boot services |
+| `otlp` HTTP | 4318 | HTTP/protobuf | Same, for services that prefer HTTP |
+
+**Connectors**
+
+| Connector | Purpose |
+|-----------|---------|
+| `spanmetrics` | Converts span data into RED metrics (rate, error, duration) **inside** the Collector. No extra scrape target needed. |
+
+**Exporters**
+
+| Exporter | Destination | What is sent |
+|----------|-------------|--------------|
+| `otlp_http/tempo` | `http://tempo:4318` | All traces → Tempo for long-term storage and TraceQL |
+| `otlp_grpc` | `jaeger-all-in-one:4317` | All traces → Jaeger UI |
+| `zipkin` | `http://zipkin:9411/api/v2/spans` | All traces → Zipkin UI |
+| `prometheus` | `:8889` (scraped by Prometheus) | spanmetrics output + collector self-metrics |
+| `otlp_http/loki` | `http://loki:3100/otlp` | Structured logs → Loki |
+| `elasticsearch` | `https://elasticsearch-es-http:9200` | Raw trace + log documents → ES/Kibana |
+
+**Pipelines**
+
+```
+traces  pipeline: otlp → batch → [tempo, jaeger, zipkin, elasticsearch, spanmetrics]
+metrics pipeline: otlp + spanmetrics → batch → prometheus
+logs    pipeline: otlp → [loki, elasticsearch]
+```
+
+**Ports exposed as Kubernetes Services**
+
+| Port | Use |
+|------|-----|
+| 4317 | OTLP gRPC receiver |
+| 4318 | OTLP HTTP receiver |
+| 8889 | Prometheus metrics exporter (scraped by kube-prometheus-stack) |
+| 8888 | Collector self-metrics (also scraped by Prometheus) |
+| 13133 | Health check endpoint |
+
+### Step 2 — Tempo (`values/tempo.yaml`)
+
+Tempo stores traces and makes them queryable via TraceQL.
+
+**Distributor** — accepts OTLP gRPC (`:4317`) and HTTP (`:4318`) from the Collector.
+
+**Metrics generator** — generates three kinds of derived metrics from stored spans:
+
+| Processor | What it produces | Key metrics |
+|-----------|-----------------|-------------|
+| `service-graphs` | Service-to-service request graphs | `traces_service_graph_request_total`, `traces_service_graph_request_duration_seconds_bucket` |
+| `span-metrics` | Per-span RED metrics (complements the Collector's spanmetrics connector) | `traces_span_metrics_calls`, `traces_span_metrics_duration_bucket` |
+| `local-blocks` | Enables TraceQL metrics queries directly against stored trace blocks | powers `{...} \| rate()`, `\| quantile_over_time()`, etc. |
+
+**Storage** — traces are persisted on a local PVC (`/var/tempo/traces`, 5 Gi).
+
+**Query frontend** — exposed on `:3200`, handles search, TraceQL, and `trace_by_id` requests from Grafana.
+
+### Step 3 — Tempo datasource in Grafana (`values/kube-prometheus-stack.yaml`)
+
+The Tempo datasource is configured with several drill-down links so that clicking any span in Grafana instantly opens related data in other datasources:
+
+```yaml
+- name: Tempo
+  uid: tempo
+  type: tempo
+  url: http://tempo:3200
+  jsonData:
+    nodeGraph:
+      enabled: true          # renders service dependency graph alongside traces
+    tracesToMetrics:
+      datasourceUid: webstore-metrics   # Prometheus datasource
+      tags:
+        - key: service.name
+          value: service_name
+      queries:
+        - name: Span rate
+          query: 'sum(rate(traces_span_metrics_calls{$__tags}[5m]))'
+        - name: Span latency
+          query: 'histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_bucket{$__tags}[5m])) by (le, service_name))'
+    tracesToLogsV2:
+      datasourceUid: loki              # Loki datasource
+      tags:
+        - key: service.name
+          value: service_name
+      filterByTraceID: true
+    lokiSearch:
+      datasourceUid: loki
+    serviceMap:
+      datasourceUid: webstore-metrics  # Prometheus datasource for service map
+```
+
+### Drill-down flow end to end
+
+```
+Grafana dashboard (Prometheus metric panel)
+   └─► click data point
+       └─► Explore view shows spanmetrics (traces_span_metrics_calls, _duration_*)
+           └─► "Query traces" link → Tempo Explore
+               └─► TraceQL search returns matching traces
+                   └─► click a trace → Span detail view
+                       ├─► "Related metrics" → Prometheus panel filtered to this service/operation
+                       └─► "Related logs" → Loki log stream filtered by traceId
+```
+
+### Key metrics produced by spanmetrics
+
+These metrics are generated by the `spanmetrics` connector in the Collector (and echoed by Tempo's `span-metrics` processor). Prometheus scrapes them from the Collector's `:8889` endpoint.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `traces_span_metrics_calls` | Counter | Total number of spans per service/operation/status |
+| `traces_span_metrics_duration_bucket` | Histogram | Span duration distribution (latency percentiles) |
+| `traces_span_metrics_duration_sum` | Histogram | Sum of span durations |
+| `traces_span_metrics_duration_count` | Histogram | Total span count (same as calls) |
+
+Common labels on all spanmetrics:
+
+| Label | Example value | Source |
+|-------|--------------|--------|
+| `service_name` | `multiplication` | OTLP `service.name` resource attribute |
+| `span_name` | `POST /attempts` | Span name |
+| `span_kind` | `SPAN_KIND_SERVER` | Span kind |
+| `status_code` | `STATUS_CODE_OK` | OpenTelemetry span status |
+
+### Grafana plugins used for drilldown
+
+| Plugin | Purpose |
+|--------|---------|
+| `grafana-exploretraces-app` | Dedicated Traces Explore UI, TraceQL editor |
+| `grafana-metricsdrilldown-app` | Click a metric → auto-generate related queries |
+| `grafana-lokiexplore-app` | Log exploration from trace context |
+| `grafana-pyroscope-app` | Continuous profiling (optional, included for future use) |
