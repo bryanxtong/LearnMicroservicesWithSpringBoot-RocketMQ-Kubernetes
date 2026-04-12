@@ -66,14 +66,17 @@ All workloads are deployed into the `microservices` namespace.
 
 The following third-party components are pinned to specific versions in `helmfile.yaml` and `values/`.
 
-| Component | Helm Chart Version | App / Image Version |
-|-----------|-------------------|---------------------|
-| kube-prometheus-stack | 83.4.0 | prometheus-operator v0.90.1, Grafana 12.4.2 |
-| Loki | 9.2.0 | — |
-| Tempo | 2.0.0 | — |
-| Jaeger | 4.6.0 | — |
-| OpenTelemetry Collector | 0.150.0 | otel/opentelemetry-collector-contrib **0.149.0** |
-| RocketMQ | 0.0.1 | — |
+| Component                  | Helm Chart Version | App / Image Version                              |
+|----------------------------|--------------------|--------------------------------------------------|
+| kube-prometheus-stack      | 83.4.0             | prometheus-operator v0.90.1, Grafana 12.4.2      |
+| ECK operator               | latest (elastic)   | —                                                |
+| ECK stack                  | 0.18.2             | Elasticsearch + Kibana managed by ECK            |
+| Loki                       | 9.2.0              | —                                                |
+| Tempo                      | 2.0.0              | 2.10.1                                           |
+| Jaeger                     | 4.6.0              | —                                                |
+| OpenTelemetry Collector    | 0.150.0            | otel/opentelemetry-collector-contrib **0.149.0** |
+| RocketMQ                   | 0.0.1              | 1.16.0                                           |
+| ingress-nginx              | 4.15.1             | 1.15.1                                           |
 
 > **Note:** The OTel Collector Helm chart version (`0.150.0`) and the collector application image version (`0.149.0`) are separate version numbers — the chart has its own release cadence independent of the application binary.
 
@@ -87,6 +90,18 @@ The full stack is defined in `helmfile.yaml` and includes:
 - Ingress: ingress-nginx controller and shared ingress rules
 
 Note: the `grafana-dashboards` release creates the dashboard ConfigMaps that `kube-prometheus-stack`/Grafana consumes. Helmfile already keeps the releases in the right order.
+
+### Grafana dashboards
+
+Dashboards are loaded from `charts/grafana-dashboards-configmap/dashboards/` via the Grafana sidecar. The following dashboards are currently included:
+
+| File                          | Dashboard name              | Datasource        |
+|-------------------------------|-----------------------------|-------------------|
+| `demo-dashboard.json`         | Demo (service RED metrics)  | Prometheus        |
+| `spanmetrics-dashboard.json`  | Spanmetrics                 | Prometheus        |
+| `opentelemetry-collector.json`| OpenTelemetry Collector     | Prometheus        |
+
+> To add a dashboard, drop a JSON file into the `dashboards/` directory and re-run `helmfile sync -l name=grafana-dashboards`. To remove a dashboard, delete the JSON file and re-run — the Grafana sidecar will remove it automatically within 30 seconds.
 
 ## Environment Variables
 
@@ -249,30 +264,30 @@ Current paths include:
 
 Due to ingress path configuration, some services require base path configuration to work correctly:
 
-| Service | Ingress Path | Configuration Required |
-|---------|--------------|----------------------|
-| Grafana | `/grafana` | `root_url: "%(protocol)s://%(domain)s/grafana/"` in grafana.ini |
-| Prometheus | `/prometheus` | No special configuration needed |
-| Jaeger | `/jaeger` | `base_path: /jaeger` in jaeger-query config |
-| Zipkin | `/zipkin` | `ZIPKIN_UI_BASEPATH: /zipkin` env variable |
-| Kibana | `/kibana` | No special configuration needed |
-| Nacos | `/nacos/(.*)` | Uses ingress rewrite, no service config needed |
-| Sentinel | `/sentinel-dashboard/` | Uses ingress rewrite, no service config needed |
-| Gateway | `/api/(.*)` | Uses ingress rewrite, no service config needed |
+| Service    | Ingress Path          | Configuration Required                                        |
+|------------|-----------------------|---------------------------------------------------------------|
+| Grafana    | `/grafana`            | `root_url: "%(protocol)s://%(domain)s/grafana/"` in grafana.ini |
+| Prometheus | `/prometheus`         | No special configuration needed                               |
+| Jaeger     | `/jaeger`             | `base_path: /jaeger` in jaeger-query config                   |
+| Zipkin     | `/zipkin`             | `ZIPKIN_UI_BASEPATH: /zipkin` env variable                    |
+| Kibana     | `/kibana`             | No special configuration needed                               |
+| Nacos      | `/nacos/(.*)`         | Uses ingress rewrite, no service config needed                |
+| Sentinel   | `/sentinel-dashboard/`| Uses ingress rewrite, no service config needed                |
+| Gateway    | `/api/(.*)`           | Uses ingress rewrite, no service config needed                |
 
 Services with `rewrite: true` in ingress-rules handle path rewriting at the ingress level.
 
 ## Port-forward examples
 
 ```bash
-kubectl port-forward -n microservices svc/frontend 3000:80
-kubectl port-forward -n microservices svc/gateway 8080:8000
-kubectl port-forward -n microservices svc/kube-prometheus-stack-grafana 3001:80
-kubectl port-forward -n microservices svc/kube-prometheus-stack-prometheus 9090:9090
-kubectl port-forward -n microservices svc/jaeger-all-in-one 16686:16686
-kubectl port-forward -n microservices svc/zipkin 9411:9411
-kubectl port-forward -n microservices svc/eck-stack-eck-kibana-kb-http 5601:5601
-kubectl port-forward -n microservices svc/sentinel-dashboard 8858:8080
+kubectl port-forward -n microservices svc/frontend                          3000:80
+kubectl port-forward -n microservices svc/gateway                           8080:8000
+kubectl port-forward -n microservices svc/kube-prometheus-stack-grafana     3001:80
+kubectl port-forward -n microservices svc/kube-prometheus-stack-prometheus  9090:9090
+kubectl port-forward -n microservices svc/jaeger-all-in-one                 16686:16686
+kubectl port-forward -n microservices svc/zipkin                            9411:9411
+kubectl port-forward -n microservices svc/eck-stack-eck-kibana-kb-http      5601:5601
+kubectl port-forward -n microservices svc/sentinel-dashboard                8858:8080
 ```
 
 ## External access
@@ -289,12 +304,12 @@ Containerd uses `plugins."io.containerd.grpc.v1.cri".registry.mirrors` to config
 
 ### Configured Mirrors
 
-| Source | Mirrors |
-|--------|---------|
-| docker.io | Aliyun, DaoCloud, NetEase, Baidu and other China-region mirrors |
-| quay.io | DaoCloud mirror |
-| gcr.io | DaoCloud mirror |
-| ghcr.io | DaoCloud mirror |
+| Source     | Mirrors                                                        |
+|------------|----------------------------------------------------------------|
+| docker.io  | Aliyun, DaoCloud, NetEase, Baidu and other China-region mirrors |
+| quay.io    | DaoCloud mirror                                                |
+| gcr.io     | DaoCloud mirror                                                |
+| ghcr.io    | DaoCloud mirror                                                |
 
 ### Configuration
 
@@ -366,27 +381,27 @@ The Collector is the single ingestion point. Every backend service sends OTLP da
 
 **Receivers**
 
-| Receiver | Port | Protocol | What it accepts |
-|----------|------|----------|-----------------|
-| `otlp` gRPC | 4317 | gRPC | Traces, metrics, logs from all Spring Boot services |
-| `otlp` HTTP | 4318 | HTTP/protobuf | Same, for services that prefer HTTP |
+| Receiver      | Port | Protocol      | What it accepts                                      |
+|---------------|------|---------------|------------------------------------------------------|
+| `otlp` gRPC   | 4317 | gRPC          | Traces, metrics, logs from all Spring Boot services  |
+| `otlp` HTTP   | 4318 | HTTP/protobuf | Same, for services that prefer HTTP                  |
 
 **Connectors**
 
-| Connector | Purpose |
-|-----------|---------|
+| Connector     | Purpose                                                                                             |
+|---------------|-----------------------------------------------------------------------------------------------------|
 | `spanmetrics` | Converts span data into RED metrics (rate, error, duration) **inside** the Collector. No extra scrape target needed. |
 
 **Exporters**
 
-| Exporter | Destination | What is sent |
-|----------|-------------|--------------|
-| `otlp_http/tempo` | `http://tempo:4318` | All traces → Tempo for long-term storage and TraceQL |
-| `otlp_grpc` | `jaeger-all-in-one:4317` | All traces → Jaeger UI |
-| `zipkin` | `http://zipkin:9411/api/v2/spans` | All traces → Zipkin UI |
-| `prometheus` | `:8889` (scraped by Prometheus) | spanmetrics output + collector self-metrics |
-| `otlp_http/loki` | `http://loki:3100/otlp` | Structured logs → Loki |
-| `elasticsearch` | `https://elasticsearch-es-http:9200` | Raw trace + log documents → ES/Kibana |
+| Exporter           | Destination                               | What is sent                                          |
+|--------------------|-------------------------------------------|-------------------------------------------------------|
+| `otlp_http/tempo`  | `http://tempo:4318`                       | All traces → Tempo for long-term storage and TraceQL  |
+| `otlp_grpc`        | `jaeger-all-in-one:4317`                  | All traces → Jaeger UI                                |
+| `zipkin`           | `http://zipkin:9411/api/v2/spans`         | All traces → Zipkin UI                                |
+| `prometheus`       | `:8889` (scraped by Prometheus)           | spanmetrics output + collector self-metrics           |
+| `otlp_http/loki`   | `http://loki:3100/otlp`                   | Structured logs → Loki                                |
+| `elasticsearch`    | `https://elasticsearch-es-http:9200`      | Raw trace + log documents → ES/Kibana                 |
 
 **Pipelines**
 
@@ -398,13 +413,13 @@ logs    pipeline: otlp → [loki, elasticsearch]
 
 **Ports exposed as Kubernetes Services**
 
-| Port | Use |
-|------|-----|
-| 4317 | OTLP gRPC receiver |
-| 4318 | OTLP HTTP receiver |
-| 8889 | Prometheus metrics exporter (scraped by kube-prometheus-stack) |
-| 8888 | Collector self-metrics (also scraped by Prometheus) |
-| 13133 | Health check endpoint |
+| Port  | Use                                                      |
+|-------|----------------------------------------------------------|
+| 4317  | OTLP gRPC receiver                                       |
+| 4318  | OTLP HTTP receiver                                       |
+| 8889  | Prometheus metrics exporter (scraped by kube-prometheus-stack) |
+| 8888  | Collector self-metrics (also scraped by Prometheus)      |
+| 13133 | Health check endpoint                                    |
 
 ### Step 2 — Tempo (`values/tempo.yaml`)
 
@@ -414,11 +429,11 @@ Tempo stores traces and makes them queryable via TraceQL.
 
 **Metrics generator** — generates three kinds of derived metrics from stored spans:
 
-| Processor | What it produces | Key metrics |
-|-----------|-----------------|-------------|
-| `service-graphs` | Service-to-service request graphs | `traces_service_graph_request_total`, `traces_service_graph_request_duration_seconds_bucket` |
-| `span-metrics` | Per-span RED metrics (complements the Collector's spanmetrics connector) | `traces_span_metrics_calls_total`, `traces_span_metrics_duration_milliseconds_bucket` |
-| `local-blocks` | Enables TraceQL metrics queries directly against stored trace blocks | powers `{...} \| rate()`, `\| quantile_over_time()`, etc. |
+| Processor        | What it produces                                                              | Key metrics                                                                                      |
+|------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| `service-graphs` | Service-to-service request graphs                                             | `traces_service_graph_request_total`, `traces_service_graph_request_duration_seconds_bucket`     |
+| `span-metrics`   | Per-span RED metrics (complements the Collector's spanmetrics connector)      | `traces_span_metrics_calls_total`, `traces_span_metrics_duration_milliseconds_bucket`            |
+| `local-blocks`   | Enables TraceQL metrics queries directly against stored trace blocks          | powers `{...} \| rate()`, `\| quantile_over_time()`, etc.                                       |
 
 **Storage** — traces are persisted on a local PVC (`/var/tempo/traces`, 5 Gi).
 
@@ -479,42 +494,42 @@ These metrics are generated by the `spanmetrics` connector in the Collector (and
 
 The OTel Collector prometheus exporter is configured with `add_metric_suffixes: true` (in `values/otel-collector.yaml`), which appends Prometheus-standard suffixes to metric names. Counter metrics get `_total`; histogram unit suffixes (`_milliseconds`) are preserved as-is.
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `traces_span_metrics_calls_total` | Counter | Total number of spans per service/operation/status |
+| Metric                                          | Type      | Description                                      |
+|-------------------------------------------------|-----------|--------------------------------------------------|
+| `traces_span_metrics_calls_total`               | Counter   | Total number of spans per service/operation/status |
 | `traces_span_metrics_duration_milliseconds_bucket` | Histogram | Span duration distribution (latency percentiles) |
-| `traces_span_metrics_duration_milliseconds_sum` | Histogram | Sum of span durations |
-| `traces_span_metrics_duration_milliseconds_count` | Histogram | Total span count (same as calls) |
+| `traces_span_metrics_duration_milliseconds_sum` | Histogram | Sum of span durations                            |
+| `traces_span_metrics_duration_milliseconds_count`| Histogram | Total span count (same as calls)                 |
 
 > **Note:** With `add_metric_suffixes: true`, only the suffixed form is exported — the bare names (`traces_span_metrics_calls`, `traces_span_metrics_duration_bucket`) do **not** exist alongside them. All dashboard queries and Grafana datasource `tracesToMetrics` configurations must use the suffixed names.
 
 **What is affected by the metric name change (`add_metric_suffixes: true`):**
 
-| Component | Affected? | Detail |
-|-----------|-----------|--------|
-| Spanmetrics dashboard (`spanmetrics-dashboard.json`) | ✅ Yes | All PromQL queries updated to `_total` / `_milliseconds_*` |
-| Demo dashboard (`demo-dashboard.json`) | ✅ Yes | All PromQL queries updated |
-| Tempo datasource `tracesToMetrics` links | ✅ Yes | Queries in `kube-prometheus-stack.yaml` updated; datasource ConfigMap patched |
-| Zipkin datasource `tracesToMetrics` links | ✅ Yes | Same — updated in `kube-prometheus-stack.yaml` |
-| Grafana Explore Traces (TraceQL) | ❌ No | Queries Tempo directly over TraceQL, not Prometheus — unaffected |
-| Tempo Service Map | ❌ No | Uses `traces_service_graph_*` metrics, not spanmetrics |
-| Jaeger / Zipkin trace UIs | ❌ No | Display raw trace data, not Prometheus metrics |
-| OTel Collector dashboard (`opentelemetry-collector.json`) | ❌ No | Uses `otelcol_process_uptime_seconds_total` etc. — already correct |
+| Component                                          | Affected? | Detail                                                                          |
+|----------------------------------------------------|-----------|---------------------------------------------------------------------------------|
+| Spanmetrics dashboard (`spanmetrics-dashboard.json`)| ✅ Yes   | All PromQL queries updated to `_total` / `_milliseconds_*`                      |
+| Demo dashboard (`demo-dashboard.json`)             | ✅ Yes    | All PromQL queries updated                                                      |
+| Tempo datasource `tracesToMetrics` links           | ✅ Yes    | Queries in `kube-prometheus-stack.yaml` updated; datasource ConfigMap patched   |
+| Zipkin datasource `tracesToMetrics` links          | ✅ Yes    | Same — updated in `kube-prometheus-stack.yaml`                                  |
+| Grafana Explore Traces (TraceQL)                   | ❌ No     | Queries Tempo directly over TraceQL, not Prometheus — unaffected                |
+| Tempo Service Map                                  | ❌ No     | Uses `traces_service_graph_*` metrics, not spanmetrics                          |
+| Jaeger / Zipkin trace UIs                          | ❌ No     | Display raw trace data, not Prometheus metrics                                  |
+| OTel Collector dashboard (`opentelemetry-collector.json`) | ❌ No | Uses `otelcol_process_uptime_seconds_total` etc. — already correct           |
 
 Common labels on all spanmetrics:
 
-| Label | Example value | Source |
-|-------|--------------|--------|
+| Label          | Example value    | Source                              |
+|----------------|------------------|-------------------------------------|
 | `service_name` | `multiplication` | OTLP `service.name` resource attribute |
-| `span_name` | `POST /attempts` | Span name |
-| `span_kind` | `SPAN_KIND_SERVER` | Span kind |
-| `status_code` | `STATUS_CODE_OK` | OpenTelemetry span status |
+| `span_name`    | `POST /attempts` | Span name                           |
+| `span_kind`    | `SPAN_KIND_SERVER` | Span kind                         |
+| `status_code`  | `STATUS_CODE_OK` | OpenTelemetry span status           |
 
 ### Grafana plugins used for drilldown
 
-| Plugin | Purpose |
-|--------|---------|
-| `grafana-exploretraces-app` | Dedicated Traces Explore UI, TraceQL editor |
-| `grafana-metricsdrilldown-app` | Click a metric → auto-generate related queries |
-| `grafana-lokiexplore-app` | Log exploration from trace context |
-| `grafana-pyroscope-app` | Continuous profiling (optional, included for future use) |
+| Plugin                          | Purpose                                          |
+|---------------------------------|--------------------------------------------------|
+| `grafana-exploretraces-app`     | Dedicated Traces Explore UI, TraceQL editor      |
+| `grafana-metricsdrilldown-app`  | Click a metric → auto-generate related queries   |
+| `grafana-lokiexplore-app`       | Log exploration from trace context               |
+| `grafana-pyroscope-app`         | Continuous profiling (optional, included for future use) |
