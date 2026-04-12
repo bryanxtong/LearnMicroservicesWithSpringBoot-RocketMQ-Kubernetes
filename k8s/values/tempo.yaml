@@ -42,6 +42,8 @@ config: |
         store: memberlist
     storage:
       path: /var/tempo/generator
+    traces_storage:
+      path: /var/tempo/generator/traces
     processor:
       service_graphs:
         histogram_buckets: [0.1, 0.5, 1, 2, 5, 10]
@@ -61,11 +63,14 @@ config: |
     metrics:
       concurrent_jobs: 8
       target_bytes_per_job: 104857600
+      max_duration: 24h
     trace_by_id:
       query_shards: 2
       duration_slo: 5s
   querier:
     max_concurrent_queries: 20
+  overrides:
+    metrics_generator_processors: [service-graphs, local-blocks, span-metrics]
 
 persistence:
   enabled: true
