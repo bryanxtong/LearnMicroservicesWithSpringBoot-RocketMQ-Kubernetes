@@ -180,8 +180,8 @@ helmfile sync -l name=rocketmq-init-topics
 # Deploy observability components.
 helmfile sync -l name=eck-operator
 helmfile sync -l name=eck-stack
-helmfile sync -l name=kube-prometheus-stack
 helmfile sync -l name=grafana-dashboards
+helmfile sync -l name=kube-prometheus-stack
 helmfile sync -l name=loki
 helmfile sync -l name=tempo
 helmfile sync -l name=jaeger
@@ -281,18 +281,20 @@ Services with `rewrite: true` in ingress-rules handle path rewriting at the ingr
 
 ```bash
 kubectl port-forward -n microservices svc/frontend                          3000:80
-kubectl port-forward -n microservices svc/gateway                           8080:8000
-kubectl port-forward -n microservices svc/kube-prometheus-stack-grafana     3001:80
+kubectl port-forward -n microservices svc/gateway                           8000:8000
+kubectl port-forward -n microservices svc/kube-prometheus-stack-grafana     3001:3000
 kubectl port-forward -n microservices svc/kube-prometheus-stack-prometheus  9090:9090
 kubectl port-forward -n microservices svc/jaeger-all-in-one                 16686:16686
 kubectl port-forward -n microservices svc/zipkin                            9411:9411
 kubectl port-forward -n microservices svc/eck-stack-eck-kibana-kb-http      5601:5601
-kubectl port-forward -n microservices svc/sentinel-dashboard                8858:8080
+kubectl port-forward -n microservices svc/sentinel-dashboard                8858:8858
 ```
 
 ## External access
 
-If you use ingress locally, configure `/etc/hosts` with your ingress IP and the hostnames used by `values/gateway.yaml` and `values/frontend.yaml`.
+All ingress rules are centrally managed in `values/ingress-rules.yaml`. When accessing services locally via ingress, you typically use `localhost` or the ingress controller's IP.
+
+If you want to use custom hostnames, configure your system's `/etc/hosts` file to map the ingress IP to your desired hostname.
 
 ## Registry Mirrors (Image Pull Acceleration)
 
@@ -335,15 +337,26 @@ Then create corresponding host.toml config files in `kind/containerd-certs.d/` d
 For images with `pullPolicy: Never` (e.g., MySQL), you need to manually build and load them into the kind cluster:
 
 ```bash
-# Build the image
+# Build and load MySQL image
 docker build -t example/mysql:8.0.31 docker/image/mysql/8/
-
-# Load into kind cluster
 kind load docker-image example/mysql:8.0.31 --name kind
 
-# Same for other microservice images
+# Build and load Java microservice images
 docker build -t multiplication:0.0.1-SNAPSHOT multiplication/
 kind load docker-image multiplication:0.0.1-SNAPSHOT --name kind
+
+docker build -t gamification:0.0.1-SNAPSHOT gamification/
+kind load docker-image gamification:0.0.1-SNAPSHOT --name kind
+
+docker build -t gateway:0.0.1-SNAPSHOT gateway/
+kind load docker-image gateway:0.0.1-SNAPSHOT --name kind
+
+docker build -t logs:0.0.1-SNAPSHOT logs/
+kind load docker-image logs:0.0.1-SNAPSHOT --name kind
+
+# Build and load frontend image
+docker build -t challenges-frontend:1.0 challenges-frontend/
+kind load docker-image challenges-frontend:1.0 --name kind
 ```
 
 ## Teardown
@@ -372,7 +385,7 @@ OpenTelemetry Collector
         ├─► Zipkin         (trace UI)               ─► Grafana Zipkin datasource
         ├─► spanmetrics    (connector, in-process)  ─► Prometheus scrape → Grafana metrics
         ├─► Loki           (structured logs)        ─► Grafana Logs / Explore
-        └─► Elasticsearch  (raw log documents)      ─► Kibana / Grafana Elastic datasource
+        └─► Elasticsearch  (raw log documents & traces)      ─► Kibana / Grafana Elastic datasource
 ```
 
 ### Step 1 — OpenTelemetry Collector (`values/otel-collector.yaml`)
