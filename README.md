@@ -104,6 +104,27 @@ Key manifests and charts live under:
 - Zipkin: http://localhost/zipkin
 - Kibana: https://localhost/kibana
 
+## Grafana AI Assistant — Grot
+
+Grafana provides an official AI assistant called **Grot** that answers Grafana-related questions in natural language:
+
+- [https://grafana.com/grot/](https://grafana.com/grot/?chat=hello&from=%2Fzh-cn%2Fgrafana%2F)
+
+**What it can do:**
+- Explain PromQL / LogQL / TraceQL query syntax
+- Help design and debug Grafana dashboards
+- Answer questions about Grafana configuration, plugins, and data sources
+- Suggest alert rules and panel types
+
+**Example use cases:**
+```
+"How do I write a query to show P95 latency?"
+"Why does this PromQL expression return no data?"
+"How do I configure trace-to-metrics linking between Tempo and Prometheus?"
+```
+
+Grot is trained on Grafana documentation, making it more accurate than general-purpose AI for anything in the Grafana observability ecosystem.
+
 ## Notes
 
 - RocketMQ topics such as `attempts-topic` and `logs` need FIFO configuration in k8s.
