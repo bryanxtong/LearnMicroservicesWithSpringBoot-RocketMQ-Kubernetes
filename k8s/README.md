@@ -69,13 +69,13 @@ The following third-party components are pinned to specific versions in `helmfil
 | Component                  | Helm Chart Version | App / Image Version                              |
 |----------------------------|--------------------|--------------------------------------------------|
 | kube-prometheus-stack      | 83.4.0             | prometheus-operator v0.90.1, Grafana 12.4.2      |
-| ECK operator               | latest (elastic)   | —                                                |
-| ECK stack                  | 0.18.2             | Elasticsearch + Kibana managed by ECK            |
+| ECK operator               | 2.19.0 (elastic)   | —                                                |
+| ECK stack                  | 0.18.2             | Elasticsearch 9.3.2, Kibana 9.3.2 managed by ECK |
 | Loki                       | 9.2.0              | —                                                |
 | Tempo                      | 2.0.0              | 2.10.1                                           |
 | Jaeger                     | 4.6.0              | —                                                |
 | OpenTelemetry Collector    | 0.150.0            | otel/opentelemetry-collector-contrib **0.149.0** |
-| RocketMQ                   | 0.0.1              | 1.16.0                                           |
+| RocketMQ                   | 0.0.1              | 5.4.0                                            |
 | ingress-nginx              | 4.15.1             | 1.15.1                                           |
 
 > **Note:** The OTel Collector Helm chart version (`0.150.0`) and the collector application image version (`0.149.0`) are separate version numbers — the chart has its own release cadence independent of the application binary.

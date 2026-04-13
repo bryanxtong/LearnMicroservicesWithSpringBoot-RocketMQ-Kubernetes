@@ -95,12 +95,14 @@ Key manifests and charts live under:
 ## Access points
 
 - Frontend: http://localhost
+- API Gateway: http://localhost/api (with application url appended)
 - Grafana: http://localhost/grafana
 - Prometheus: http://localhost/prometheus
 - Nacos: http://localhost/nacos/ (nacos/nacos)
 - Sentinel Dashboard: http://localhost/sentinel-dashboard/ (sentinel/sentinel)
-- Kibana: https://localhost/kibana
 - Jaeger: http://localhost/jaeger
+- Zipkin: http://localhost/zipkin
+- Kibana: https://localhost/kibana
 
 ## Notes
 
