@@ -74,11 +74,11 @@ npm run build
 ### Build Docker images
 
 ```bash
-docker build -t multiplication:0.0.1-SNAPSHOT multiplication/
-docker build -t gamification:0.0.1-SNAPSHOT gamification/
-docker build -t gateway:0.0.1-SNAPSHOT gateway/
-docker build -t logs:0.0.1-SNAPSHOT logs/
-docker build -t challenges-frontend:1.0 challenges-frontend/
+cd multiplication && docker build -t multiplication:0.0.1-SNAPSHOT .
+cd gamification && docker build -t gamification:0.0.1-SNAPSHOT .
+cd gateway && docker build -t gateway:0.0.1-SNAPSHOT .
+cd logs && docker build -t logs:0.0.1-SNAPSHOT .
+cd challenges-frontend && docker build -t challenges-frontend:1.0 .
 ```
 
 The local Docker Compose and Kubernetes MySQL setup both use `example/mysql:8.0.31`, built from `docker/image/mysql/8/Dockerfile`.
