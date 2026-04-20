@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Value;
 
 /**
- * Kafka needs the data model to be in the same package which in different microservice projects (gamification and multiplication)
+ * RocketMQ needs the data model to be in the same package which in different microservice projects (gamification and multiplication)
  */
 @Data
 @AllArgsConstructor
