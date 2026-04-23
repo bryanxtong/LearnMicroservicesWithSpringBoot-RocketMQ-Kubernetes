@@ -121,6 +121,11 @@ The Grafana datasource configuration includes an Elasticsearch datasource that u
 
 The `elastic` environment variable is injected directly from the `elasticsearch-es-elastic-user` Kubernetes Secret using `envFromSecret: elasticsearch-es-elastic-user` in the Grafana values. This Secret is created automatically by the ECK Elasticsearch operator in the `microservices` namespace.
 
+The OpenTelemetry Collector also depends on the same `elasticsearch-es-elastic-user` Secret to authenticate its `elasticsearch` exporter. Because this Secret is generated only after the Elasticsearch pod starts successfully, Elasticsearch must be installed first and allowed to create the Secret before Grafana and the OpenTelemetry Collector are deployed or restarted. Otherwise:
+
+- Grafana may fail to initialize the Elasticsearch datasource because the password Secret does not exist yet.
+- The OpenTelemetry Collector pod may fail or start with a broken Elasticsearch exporter configuration for the same reason.
+
 ## Deploy everything
 
 From the `k8s/` directory:
@@ -145,6 +150,8 @@ helmfile sync -l name=rocketmq-init-topics
 ```bash
 helmfile sync -l stack=observability
 ```
+
+If you deploy observability components incrementally, make sure Elasticsearch is brought up first and the `elasticsearch-es-elastic-user` Secret exists before deploying or restarting Grafana and `otel-collector`.
 
 ### Applications
 ```bash
@@ -288,6 +295,31 @@ kubectl port-forward -n microservices svc/jaeger-all-in-one                 1668
 kubectl port-forward -n microservices svc/zipkin                            9411:9411
 kubectl port-forward -n microservices svc/eck-stack-eck-kibana-kb-http      5601:5601
 kubectl port-forward -n microservices svc/sentinel-dashboard                8858:8858
+```
+
+## Service backend debugging
+
+`v1 Endpoints` is deprecated in Kubernetes 1.33+. For service backend checks, prefer `EndpointSlice`.
+
+Use the service name label to find the slices owned by a service:
+
+```bash
+kubectl get endpointslice -n microservices -l kubernetes.io/service-name=gateway
+kubectl describe endpointslice -n microservices <endpoint-slice-name>
+```
+
+Typical checks:
+
+- If `Conditions.Ready: true`, the backend Pod is eligible to receive traffic from the Service.
+- If `Conditions.Ready: false`, the Pod exists but is not ready, so the Service will not treat it as a healthy backend.
+- `TargetRef` shows which Pod backs that endpoint entry.
+
+Useful companion commands:
+
+```bash
+kubectl get pod -n microservices -l app=gateway
+kubectl describe pod -n microservices <gateway-pod-name>
+kubectl logs -n microservices <gateway-pod-name> --tail=200
 ```
 
 ## External access

@@ -30,7 +30,6 @@ import org.apache.rocketmq.logappender.common.ProducerInstance;
 
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 
@@ -76,7 +75,7 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
         String logStr = this.layout.doLayout(event);
 
         //customize the code start
-        String keyHash = null;
+        String messageGroup = null;
         try {
             String hostName = "";
             try {
@@ -88,10 +87,9 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             final String applicationId = context.getProperty("applicationId");
 
             if (hostName == null || hostPort == null || applicationId == null) {
-                addError("Hostname/hostport/applicationId could not be found in context.");
+                addError("hostname/hostport/applicationId could not be found in context.");
             } else {
-                String keys = hostName + "-" + hostPort + "-" + applicationId;
-                keyHash = ByteBuffer.allocate(4).putInt(keys.hashCode()).toString();
+                messageGroup = hostName + "-" + hostPort + "-" + applicationId;
             }
 
             ClientServiceProvider provider = ClientServiceProvider.loadService();
@@ -101,8 +99,8 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
             /**
              * Not required fields
              */
-            if (keyHash != null) {
-                messageBuilder.setMessageGroup(keyHash);
+            if (messageGroup != null) {
+                messageBuilder.setMessageGroup(messageGroup);
             }
             if (this.keys != null && this.keys.length != 0) {
                 messageBuilder.setKeys(this.keys);
@@ -223,6 +221,18 @@ public class RocketmqLogbackAppender extends AppenderBase<ILoggingEvent> {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String[] getKeys() {
+        return keys;
+    }
+
+    public void setKeys(String keys) {
+        if (keys == null || keys.isBlank()) {
+            this.keys = null;
+            return;
+        }
+        this.keys = new String[] {keys};
     }
 
     public void setEndpoint(String endpoint) {

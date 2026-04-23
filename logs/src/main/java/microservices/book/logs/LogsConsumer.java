@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RocketMQMessageListener(consumerGroup = "logs", topic = "logs")
+@RocketMQMessageListener(consumerGroup = "logs", topic = "logs", requestTimeout = 10000)
 public class LogsConsumer implements RocketMQListener {
     @Override
     public ConsumeResult consume(MessageView messageView) {
@@ -42,4 +42,3 @@ public class LogsConsumer implements RocketMQListener {
         return ConsumeResult.SUCCESS;
     }
 }
-

@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 @Slf4j
 @Service
-@RocketMQMessageListener(consumerGroup = "gamification", topic = "${rocketmq.attempts}")
+@RocketMQMessageListener(consumerGroup = "gamification", topic = "${rocketmq.attempts}", requestTimeout = 10000)
 public class GameEventHandler implements RocketMQListener {
     private final GameService gameService;
     private final Gson gson = new Gson();

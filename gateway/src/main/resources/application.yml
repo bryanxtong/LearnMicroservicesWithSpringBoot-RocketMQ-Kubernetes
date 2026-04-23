@@ -66,6 +66,11 @@ spring:
   config:
     activate:
       on-profile: docker
+---
+spring:
+  config:
+    activate:
+      on-cloud-platform: kubernetes
   cloud:
     gateway:
       server:

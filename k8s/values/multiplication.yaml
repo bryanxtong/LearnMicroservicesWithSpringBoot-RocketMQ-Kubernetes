@@ -19,7 +19,7 @@ ingress:
 
 env:
   - name: SPRING_PROFILES_ACTIVE
-    value: docker
+    value: kubernetes
   - name: SPRING_CLOUD_NACOS_HOST
     value: nacos-cs
   - name: SPRING_CLOUD_ROCKETMQ_PROXY_HOST
