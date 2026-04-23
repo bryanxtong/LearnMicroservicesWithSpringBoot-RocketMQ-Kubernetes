@@ -33,8 +33,6 @@ env:
     value: otlp
   - name: OTEL_CONFIG_FILE
     value: ""
-  - name: JAVA_OPTS
-    value: "-Djava.net.preferIPv4Stack=true"
 
 livenessProbe:
   enabled: true
