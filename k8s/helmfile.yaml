@@ -201,4 +201,4 @@ releases:
     values:
       - values/ingress-rules.yaml
     needs:
-      - ingress-nginx
+      - ingress-nginx/ingress-nginx
