@@ -36,7 +36,7 @@ spring:
             - name: Retry
               args:
                 retries: 3
-                methods: GET
+                methods: GET,POST
           observability:
             enabled: true
             #httpserver:

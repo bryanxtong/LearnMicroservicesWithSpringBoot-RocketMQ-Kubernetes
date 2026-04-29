@@ -38,7 +38,7 @@ env:
     value: ""
 
   - name: JVM_OPTS
-    value: "-XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m"
+    value: "-XX:MaxRAMPercentage=75.0"
 
 livenessProbe:
   enabled: true
