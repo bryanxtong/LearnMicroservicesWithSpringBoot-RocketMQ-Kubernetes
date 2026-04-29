@@ -37,6 +37,9 @@ env:
   - name: OTEL_CONFIG_FILE
     value: ""
 
+  - name: JVM_OPTS
+    value: "-XX:MaxRAMPercentage=75.0 -Xms128m -Xmx256m"
+
 livenessProbe:
   enabled: true
   httpGet:

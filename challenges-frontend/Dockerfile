@@ -1,2 +1,3 @@
-FROM nginx:1.25.1
+FROM nginxinc/nginx-unprivileged:1.27-alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY build /usr/share/nginx/html

@@ -1,8 +1,8 @@
 spring:
   cloud:
     nacos:
-      username: nacos
-      password: nacos
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
       config:
         group: DEFAULT_GROUP
         prefix: application

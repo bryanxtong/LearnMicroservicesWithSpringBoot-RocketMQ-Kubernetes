@@ -1,4 +1,4 @@
-# Default values — override per service in values/<service>.yaml
+# Default values - override per service in values/<service>.yaml
 
 name: microservice
 
@@ -103,8 +103,16 @@ serviceAccount:
   name: ""
 
 podAnnotations: {}
-podSecurityContext: {}
-securityContext: {}
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
 
 nodeSelector: {}
 tolerations: []

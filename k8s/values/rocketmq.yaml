@@ -45,11 +45,12 @@ broker:
   service:
     port: 10911
 
-  jvmMemory: "-Xms2g -Xmx2g -Xmn1g"
+  jvmMemory: "-Xms2g -Xmx2g -Xmn1g -XX:MaxDirectMemorySize=1g"
 
-  extraEnv:
-    - name: JAVA_OPT
-      value: "-XX:MaxDirectMemorySize=1g"
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: "standard"
 
   resources:
     limits:
@@ -69,6 +70,9 @@ proxy:
   heapSize: "1920M"
   maxDirectMemorySize: "384M"
   rocketMQClusterName: "DefaultCluster"
+
+  config:
+    metricCollectorMode: "off"
 
   service:
     remotingInternetPort: 8080
@@ -105,5 +109,6 @@ controller:
       memory: 1Gi
 
   persistence:
-    enabled: false
-    size: 20Gi
+    enabled: true
+    size: 5Gi
+    storageClass: "standard"
