@@ -1,11 +1,11 @@
 package microservices.book.gamification.game;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import microservices.book.event.challenge.ChallengeSolvedEvent;
 import org.apache.rocketmq.client.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.client.apis.consumer.ConsumeResult;
 import org.apache.rocketmq.client.apis.message.MessageView;
 import org.apache.rocketmq.client.core.RocketMQListener;
-import org.apache.rocketmq.shaded.com.google.gson.Gson;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -18,13 +18,13 @@ import java.nio.charset.StandardCharsets;
 @RocketMQMessageListener(consumerGroup = "gamification", topic = "${rocketmq.attempts}", requestTimeout = 10000)
 public class GameEventHandler implements RocketMQListener {
     private final GameService gameService;
-    private final Gson gson = new Gson();
+    private final ObjectMapper objectMapper;
 
     @Override
     public ConsumeResult consume(MessageView messageView) {
         try {
             String event = StandardCharsets.UTF_8.decode(messageView.getBody()).toString();
-            ChallengeSolvedEvent challengeSolvedEvent = gson.fromJson(event, ChallengeSolvedEvent.class);
+            ChallengeSolvedEvent challengeSolvedEvent = objectMapper.readValue(event, ChallengeSolvedEvent.class);
             log.info("Challenge Solved Event received: {}", challengeSolvedEvent.getAttemptId());
             gameService.newAttemptForUser(challengeSolvedEvent);
         } catch (final Exception e) {
